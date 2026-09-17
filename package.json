@@ -12,7 +12,8 @@
     "agent:register": "tsx scripts/agent-register.mts",
     "snapshot": "tsx scripts/snapshot.mts",
     "agent:trade": "tsx scripts/agent-trade.mts",
-    "keeper": "tsx scripts/keeper.mts"
+    "keeper": "tsx scripts/keeper.mts",
+    "agent:note": "tsx scripts/agent-note.mts"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",

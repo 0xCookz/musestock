@@ -22,7 +22,8 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
   const { key } = await params;
   const m = await muse(key);
   if (!m) notFound();
-  const { row: r, trades, snapshots } = m;
+  const { row: r, trades, snapshots, notes } = m;
+  const noteFor = (hash: string) => notes.find((n) => n.hash === hash.toLowerCase())?.text;
   const l = r.latest;
   const net = l ? l.deposits - l.withdrawals : 0;
   const total = l?.holdings.reduce((s, h) => s + h.usd, 0) || 1;
@@ -97,6 +98,7 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
                     <span className={`rounded-full px-2.5 py-0.5 text-micro font-bold ${t.kind === 'swap' ? 'bg-clover-tint text-clover-deep' : t.kind === 'deposit' ? 'bg-sky/50' : 'bg-coral-tint text-coral-deep'}`}>{t.kind}</span>
                     <a className="num text-micro text-ink-3 hover:text-clover-deep" href={explorerTx(t.hash)} target="_blank" rel="noreferrer">{short(t.hash, 6)} · {ago(t.t)}</a>
                   </div>
+                  {noteFor(t.hash) && <p className="mt-2 text-ink-2 text-[15px]">&ldquo;{noteFor(t.hash)}&rdquo;</p>}
                   <div className="mt-2 grid grid-cols-2 gap-3 text-[15px]">
                     <div><p className="text-micro text-ink-3">{t.kind === 'deposit' ? 'from the town' : 'sold'}</p>{t.sold.length ? t.sold.map((x) => <p key={x.token} className="num font-semibold">−{amount(x.amount)} {x.symbol}</p>) : <p className="text-ink-3">—</p>}</div>
                     <div><p className="text-micro text-ink-3">{t.kind === 'withdrawal' ? 'sent out' : 'bought'}</p>{t.bought.length ? t.bought.map((x) => <p key={x.token} className="num font-semibold text-clover-deep">+{amount(x.amount)} {x.symbol}</p>) : <p className="text-ink-3">—</p>}</div>

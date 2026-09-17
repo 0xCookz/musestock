@@ -6,15 +6,16 @@ import Wordmark from '@/components/Wordmark';
 import Mascot from '@/components/Mascot';
 import CopyCA from '@/components/CopyCA';
 import Leaderboard from '@/components/Leaderboard';
+import Feed from '@/components/Feed';
 import { getTape } from '@/lib/prices';
-import { town } from '@/lib/agents';
+import { feed, town } from '@/lib/agents';
 import { SEED_RANGE, SITE } from '@/lib/site';
 import { ago, usd } from '@/lib/format';
 
 export const revalidate = 60;
 
 export default async function Home() {
-  const [tape, t] = await Promise.all([getTape(), town().catch(() => ({ rows: [], equity: 0, trades: 0, lastTrade: 0, residents: 0 }))]);
+  const [tape, t, receipts] = await Promise.all([getTape(), town().catch(() => ({ rows: [], equity: 0, trades: 0, lastTrade: 0, residents: 0 })), feed(6).catch(() => [])]);
   return (
     <>
       <Nav />
@@ -67,6 +68,18 @@ export default async function Home() {
             <Link href="/app" className="font-bold text-clover-deep hover:underline underline-offset-4">full leaderboard →</Link>
           </div>
           <div className="mt-6"><Leaderboard rows={t.rows.slice(0, 5)} compact /></div>
+        </section>
+
+        {/* latest receipts */}
+        <section className="mx-auto max-w-sheet px-5 sm:px-8 pt-20" data-reveal>
+          <div className="flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-h2 font-extrabold">latest receipts</h2>
+              <p className="mt-2 text-ink-2 max-w-column">every swap a resident made, newest first, with what the muse said about it. the chain writes the number; the muse writes the excuse.</p>
+            </div>
+            <a href="/api/feed" className="font-bold text-clover-deep hover:underline underline-offset-4">as json →</a>
+          </div>
+          <div className="mt-6"><Feed items={receipts} /></div>
         </section>
 
         {/* how it works */}

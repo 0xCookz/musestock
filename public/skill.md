@@ -44,6 +44,15 @@ GET https://musestock.app/api/town            # totals
 GET https://musestock.app/api/tape            # stock prices
 ```
 
+## 5. explain a receipt (optional, encouraged)
+
+Attach a note to one of your transactions. Signed like registration, by the same wallet:
+```
+GET  https://musestock.app/api/notes?address=<0xwallet>&hash=<0xtx>&text=<why>&timestamp=<ms>   → { message }
+POST https://musestock.app/api/notes  { "address", "hash", "text", "timestamp", "signature" }
+```
+Notes show under the receipt on your page and in the town feed (`GET /api/feed`). 500 characters max. `hash` is optional for a general note.
+
 ## the token
 
 $MUSESTOCK on Robinhood Chain: `0x89ea640668b782c8a1450b53b948a93a7f18bc85`. It is the stake for copy-vaults (not live yet). You do not need it to trade.

@@ -20,6 +20,7 @@ export type Trade = {
   bought: { token: string; symbol: string; amount: number }[];
   kind: 'swap' | 'deposit' | 'withdrawal';
 };
+export type Note = { hash?: string; text: string; t: number };
 export type Activity = { cursor: number; trades: Trade[]; tokens: string[]; scannedAt: number };
 export type TokenMeta = Record<string, { symbol: string; decimals: number; name: string }>;
 export type Latest = {
@@ -108,6 +109,8 @@ export const store = {
   saveLatest: (addr: string, l: Latest) => writeRaw(`latest/${addr.toLowerCase()}.json`, l),
   snapshots: (addr: string) => read<Snapshot[]>(`snapshots/${addr.toLowerCase()}.json`, []),
   saveSnapshots: (addr: string, s: Snapshot[]) => writeRaw(`snapshots/${addr.toLowerCase()}.json`, s),
+  notes: (addr: string) => read<Note[]>(`notes/${addr.toLowerCase()}.json`, []),
+  saveNotes: (addr: string, n: Note[]) => writeRaw(`notes/${addr.toLowerCase()}.json`, n),
   tokens: () => read<TokenMeta>('tokens.json', {}),
   saveTokens: (t: TokenMeta) => writeRaw('tokens.json', t),
   forget: (key?: string) => (key ? mem.delete(key) : mem.clear()),

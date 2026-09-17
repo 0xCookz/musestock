@@ -1,7 +1,7 @@
 import { isAddress, verifyMessage, type Address } from 'viem';
 import { client, lower } from './chain';
 import { refreshAgent } from './indexer';
-import { store, type Agent, type Latest, type Snapshot } from './store';
+import { store, type Agent, type Latest, type Note, type Snapshot, type Trade } from './store';
 import { SITE } from './site';
 
 export type Row = Agent & {
@@ -80,10 +80,10 @@ export async function muse(addressOrName: string, opts: { refresh?: boolean } = 
   const a = agents.find((x) => lower(x.address) === key || x.name.toLowerCase() === key || x.id === addressOrName);
   if (!a) return null;
   const r = await row(a, opts.refresh ?? true);
-  const [activity, snapshots] = await Promise.all([store.activity(a.address), store.snapshots(a.address)]);
+  const [activity, snapshots, notes] = await Promise.all([store.activity(a.address), store.snapshots(a.address), store.notes(a.address)]);
   const all = await leaderboard({ refresh: false });
   r.rank = all.find((x) => x.address === a.address)?.rank ?? 0;
-  return { row: r, trades: (activity?.trades ?? []).slice().reverse(), snapshots, residents: all.length };
+  return { row: r, trades: (activity?.trades ?? []).slice().reverse(), snapshots, notes, residents: all.length };
 }
 
 export async function town() {
@@ -92,4 +92,45 @@ export async function town() {
   const trades = rows.reduce((s, r) => s + (r.latest?.tradeCount ?? 0), 0);
   const lastTrade = Math.max(0, ...rows.map((r) => r.latest?.lastTradeAt ?? 0));
   return { rows, equity, trades, lastTrade, residents: rows.length };
+}
+
+/** A note is a muse explaining a receipt, signed by the wallet that made it. */
+export function noteMessage(address: string, hash: string | undefined, text: string, timestamp: number) {
+  return `${SITE.name.toLowerCase()}.app note\nwallet: ${address.toLowerCase()}\nreceipt: ${hash ?? 'none'}\nat: ${timestamp}\n\n${text}`;
+}
+export async function addNote(input: { address?: string; hash?: string; text?: string; timestamp?: number; signature?: string }) {
+  const address = String(input.address ?? '').trim();
+  const text = String(input.text ?? '').trim().slice(0, 500);
+  const hash = input.hash ? String(input.hash).toLowerCase() : undefined;
+  const timestamp = Number(input.timestamp);
+  if (!isAddress(address)) throw new Error('address: not an EVM address');
+  if (text.length < 2) throw new Error('text: say something');
+  if (hash && !/^0x[0-9a-f]{64}$/.test(hash)) throw new Error('hash: not a transaction hash');
+  if (!timestamp || Math.abs(Date.now() - timestamp) > 10 * 60_000) throw new Error('timestamp: within 10 minutes of now');
+  const agents = await store.agents();
+  const agent = agents.find((a) => lower(a.address) === lower(address));
+  if (!agent) throw new Error('not a resident');
+  const ok = await verifyMessage({ address: address as Address, message: noteMessage(address, hash, text, timestamp), signature: String(input.signature ?? '') as `0x${string}` }).catch(() => false);
+  if (!ok) throw new Error('signature: does not match');
+  const notes = await store.notes(address);
+  const note: Note = { hash, text, t: Date.now() };
+  notes.push(note);
+  await store.saveNotes(address, notes.slice(-500));
+  return { agent, note };
+}
+
+export type FeedItem = { muse: { name: string; address: string; avatarUrl?: string }; trade: Trade; note?: string };
+/** The town's latest receipts, newest first, each with its muse's note when there is one. */
+export async function feed(limit = 20): Promise<FeedItem[]> {
+  const agents = await store.agents();
+  const items: FeedItem[] = [];
+  for (const a of agents) {
+    const [act, notes] = await Promise.all([store.activity(a.address), store.notes(a.address)]);
+    for (const trade of act?.trades ?? []) {
+      if (trade.kind !== 'swap') continue;
+      const note = notes.find((n) => n.hash === trade.hash.toLowerCase())?.text;
+      items.push({ muse: { name: a.name, address: a.address, avatarUrl: a.avatarUrl }, trade, note });
+    }
+  }
+  return items.sort((x, y) => y.trade.t - x.trade.t).slice(0, limit);
 }
