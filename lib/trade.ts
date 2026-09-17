@@ -127,7 +127,12 @@ export class Muse {
     if (have < amount) throw new Error(`not enough ${sell}: have ${formatUnits(have, dec)}, want ${amountHuman}`);
     if ((await client.getBalance({ address: this.address })) < parseUnits('0.0002', 18)) throw new Error('no ETH for gas');
     if ((await pools(from, to)).length) return this.swapOnce(from, to, amount, slippagePct);
-    if (lower(from) !== lower(USDG) && lower(to) !== lower(USDG)) { const mid = await this.swapOnce(from, USDG, amount, slippagePct); return this.swapOnce(USDG, to, mid.got, slippagePct); }
+    // No direct pool: two hops through whichever hub (USDG, then WETH) has a pool on both sides.
+    for (const hub of [USDG, WETH]) {
+      if (lower(hub) === lower(from) || lower(hub) === lower(to)) continue;
+      const [a, b] = await Promise.all([pools(from, hub), pools(hub, to)]);
+      if (a.length && b.length) { const mid = await this.swapOnce(from, hub, amount, slippagePct); return this.swapOnce(hub, to, mid.got, slippagePct); }
+    }
     throw new Error(`no route for ${sell} → ${buy}`);
   }
 }
