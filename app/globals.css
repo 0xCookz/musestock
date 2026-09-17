@@ -27,6 +27,11 @@ body {
   * { transition-duration: .01ms !important; }
 }
 
+/* the wordmark breathes: a tiny lift per letter, out of phase */
+.wm-letter { animation: wm-bob 4.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes wm-bob { 0%, 100% { transform: translateY(0) rotate(-0.6deg); } 50% { transform: translateY(-0.018px) rotate(0.6deg); } }
+@media (prefers-reduced-motion: reduce) { .wm-letter { animation: none; } }
+
 /* the receipt: Musestock's own device. A strip of paper with a perforated
    top and bottom, numbers set in mono. Used for trades, tape, and proofs. */
 .receipt {
