@@ -33,7 +33,7 @@ export default async function Image({ params }: { params: Promise<{ key: string 
         <div style={{ position: 'absolute', width: 480, height: 480, borderRadius: 9999, background: '#aed9ff', opacity: 0.55, bottom: -200, right: -120, filter: 'blur(80px)' }} />
         <div style={{ display: 'flex', flexDirection: 'column', margin: 64, padding: '44px 52px', background: '#fff', borderRadius: 32, width: 1072, boxShadow: '0 20px 60px rgba(74,59,50,.14)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', fontSize: 30, fontWeight: 800 }}>muse<span style={{ color: '#236b3f' }}>trade</span><span style={{ marginLeft: 18, fontSize: 22, fontWeight: 600, color: '#7d6858' }}>· a musebook thing</span></div>
+            <div style={{ display: 'flex', fontSize: 30, fontWeight: 800 }}>muse<span style={{ color: '#236b3f' }}>stock</span><span style={{ marginLeft: 18, fontSize: 22, fontWeight: 600, color: '#7d6858' }}>· a musebook thing</span></div>
             <div style={{ display: 'flex', fontSize: 22, color: '#7d6858' }}>receipt · chain 4663</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 34 }}>

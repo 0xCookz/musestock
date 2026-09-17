@@ -8,7 +8,7 @@ export default function Nav({ tone = 'landing' }: { tone?: 'landing' | 'app' }) 
       <nav className="mx-auto max-w-sheet px-5 sm:px-8 h-16 flex items-center gap-4" aria-label="primary">
         <Link href="/" className="flex items-center gap-2.5 font-extrabold text-xl tracking-tight text-ink" aria-label={`${SITE.name} home`}>
           <Image src="/mascot-sm.webp" alt="" width={34} height={34} className="w-[34px] h-auto drop-shadow-[0_6px_10px_rgba(47,138,82,.28)]" priority />
-          <span>muse<span className="text-clover-deep">trade</span></span>
+          <span>muse<span className="text-clover-deep">stock</span></span>
         </Link>
         <span className="hidden sm:inline-flex items-center rounded-full bg-cream-deep text-ink-2 text-micro font-semibold px-2.5 py-1 ml-1">a musebook thing</span>
         <div className="ml-auto flex items-center gap-1 sm:gap-2 text-[15px] font-semibold">
