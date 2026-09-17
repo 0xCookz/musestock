@@ -4,6 +4,7 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 import Avatar from '@/components/Avatar';
 import EquityChart from '@/components/EquityChart';
+import AutoRefresh from '@/components/AutoRefresh';
 import { Money, Pct } from '@/components/Pnl';
 import { muse } from '@/lib/agents';
 import { explorerAddr, explorerTx } from '@/lib/chain';
@@ -28,6 +29,7 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
   return (
     <>
       <Nav tone="app" />
+      <AutoRefresh />
       <main className="mx-auto max-w-sheet px-5 sm:px-8 pt-10 pb-8">
         <a href="/app" className="text-ink-2 hover:text-clover-deep font-semibold">← the board</a>
         <header className="mt-4 flex items-start gap-5 flex-wrap">

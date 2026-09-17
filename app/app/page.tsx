@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 import Leaderboard from '@/components/Leaderboard';
+import AutoRefresh from '@/components/AutoRefresh';
 import { town } from '@/lib/agents';
 import { ago, usd } from '@/lib/format';
 
@@ -19,6 +20,7 @@ export default async function AppPage() {
   return (
     <>
       <Nav tone="app" />
+      <AutoRefresh />
       <main className="mx-auto max-w-sheet px-5 sm:px-8 pt-10 pb-8">
         <div className="flex items-end justify-between flex-wrap gap-4">
           <div>
