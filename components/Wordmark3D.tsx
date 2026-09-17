@@ -9,9 +9,9 @@ import wordmark from '@/lib/wordmark.json';
  * The letters are Baloo 2 at 800 — the face musebook sets its whole town in —
  * pulled out of the TTF at build time (scripts/glyphs.py) and shipped as path
  * data. They are extruded with a fat bevel so they read as soft vinyl toys,
- * not type: matte cream for MUSE, the inherited half, and clover for TRADE,
- * the half that is ours. The pointer tilts the word; each letter floats on
- * its own slow breath.
+ * not type: ink brown for MUSE, the inherited half, and clover for TRADE,
+ * the half that is ours (cream letters vanished into the cream page). The
+ * pointer leans the word a few degrees; each letter breathes, barely.
  *
  * The flat SVG underneath is the real content: it is what renders before the
  * 3D arrives, when JS never runs, and when the reader has asked for less
@@ -24,6 +24,8 @@ const TRACKING = -0.005;
 const CAP = wordmark.capHeight;
 const totalWidth = LETTERS.reduce((w, l) => w + l.advance + TRACKING, -TRACKING);
 const OURS = 4; // index where TRADE starts
+const LEAN_Y = 0.14; // max lean toward the pointer, radians
+const LEAN_X = 0.08;
 
 function layout() {
   let x = 0;
@@ -65,7 +67,7 @@ export default function Wordmark3D({ className = '' }: { className?: string }) {
           <path key={i} d={l.d} transform={`translate(${l.x} 0)`} fill={i >= OURS ? '#2f8a52' : '#4a3b32'} />
         ))}
       </svg>
-      <div ref={host} className="absolute inset-0 pointer-events-none" aria-hidden />
+      <div ref={host} className="absolute pointer-events-none" style={{ inset: '-38% -9%' }} aria-hidden />
     </div>
   );
 }
@@ -100,14 +102,14 @@ function build(THREE: Three, SVGLoader: Loader, host: HTMLDivElement, onLive: ()
   envTex.dispose(); pmrem.dispose();
 
   const vinyl = (color: number, sheen: number) => new THREE.MeshPhysicalMaterial({
-    color, roughness: 0.42, metalness: 0, clearcoat: 0.55, clearcoatRoughness: 0.32,
-    sheen: 0.9, sheenColor: new THREE.Color(sheen), sheenRoughness: 0.55, envMapIntensity: 0.85, side: THREE.DoubleSide,
+    color, roughness: 0.48, metalness: 0, clearcoat: 0.5, clearcoatRoughness: 0.35,
+    sheen: 0.5, sheenColor: new THREE.Color(sheen), sheenRoughness: 0.6, envMapIntensity: 0.4, side: THREE.DoubleSide,
   });
-  const cream = vinyl(0xfff0dc, 0xffb98a);
-  const clover = vinyl(0x2f8a52, 0x86d3a0);
+  const cream = vinyl(0x55403a, 0xb08a70); // ink, warmed a step so it reads as a toy and not a shadow
+  const clover = vinyl(0x1f7a43, 0x4fb374); // a touch deeper than the CSS clover: the room lightens everything
 
   scene.add(new THREE.HemisphereLight(0xfff8f1, 0xffd0b8, 0.9));
-  const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(-2, 3, 4); scene.add(key);
+  const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(-2, 3, 4); scene.add(key);
   const fill = new THREE.DirectionalLight(0xcdb4f6, 0.5); fill.position.set(3, -1, 2); scene.add(fill);
 
   const group = new THREE.Group();
@@ -117,7 +119,7 @@ function build(THREE: Three, SVGLoader: Loader, host: HTMLDivElement, onLive: ()
   placed.forEach((l, i) => {
     const data = loader.parse(`<svg xmlns="http://www.w3.org/2000/svg"><path d="${l.d}"/></svg>`);
     const shapes = data.paths.flatMap((p) => SVGLoader.createShapes(p));
-    const geo = new THREE.ExtrudeGeometry(shapes, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.075, bevelSize: 0.05, bevelOffset: -0.002, bevelSegments: 10, curveSegments: 22 });
+    const geo = new THREE.ExtrudeGeometry(shapes, { depth: 0.16, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.05, bevelOffset: -0.002, bevelSegments: 10, curveSegments: 22 });
     geo.scale(1, -1, 1); // font paths are Y-down; DoubleSide covers the flipped winding
     geo.computeVertexNormals();
     const mesh = new THREE.Mesh(geo, i >= OURS ? clover : cream);
@@ -136,17 +138,22 @@ function build(THREE: Three, SVGLoader: Loader, host: HTMLDivElement, onLive: ()
     // Fit by projecting the group's corners, not by trigonometry: the near
     // faces of a tilted, extruded word are bigger than any plane says.
     camera.position.set(0, 0, 4);
+    // Size the unleaned word to the flat SVG under it (the host is 118% of the
+    // box wide, so the word wants 1/1.18 of the canvas); a lean then spills
+    // into the canvas margin instead of shrinking the word.
+    const saved = group.rotation.clone();
+    group.rotation.set(0, 0, 0); group.updateMatrixWorld(true);
     for (let pass = 0; pass < 4; pass++) {
       camera.updateMatrixWorld();
       const box = new THREE.Box3().setFromObject(group);
-      let maxX = 0, maxY = 0;
-      for (const cx of [box.min.x, box.max.x]) for (const cy of [box.min.y, box.max.y]) for (const cz of [box.min.z, box.max.z]) {
-        const v = new THREE.Vector3(cx, cy, cz).applyMatrix4(group.matrixWorld).project(camera);
-        maxX = Math.max(maxX, Math.abs(v.x)); maxY = Math.max(maxY, Math.abs(v.y));
+      let maxX = 0;
+      for (const cx of [box.min.x, box.max.x]) for (const cz of [box.min.z, box.max.z]) {
+        const v = new THREE.Vector3(cx, 0, cz).project(camera);
+        maxX = Math.max(maxX, Math.abs(v.x));
       }
-      const over = Math.max(maxX / 0.94, maxY / 0.86);
-      camera.position.z *= over;
+      camera.position.z *= maxX / 0.83;
     }
+    group.rotation.copy(saved);
   };
   const ro = new ResizeObserver(fit); ro.observe(host);
 
@@ -155,8 +162,8 @@ function build(THREE: Three, SVGLoader: Loader, host: HTMLDivElement, onLive: ()
     const r = host.getBoundingClientRect();
     const px = (e.clientX - (r.left + r.width / 2)) / Math.max(r.width, 1);
     const py = (e.clientY - (r.top + r.height / 2)) / Math.max(r.height, 1);
-    target.y = Math.max(-1, Math.min(1, px)) * 0.42;
-    target.x = Math.max(-1, Math.min(1, py)) * 0.28;
+    target.y = Math.max(-1, Math.min(1, px)) * LEAN_Y;
+    target.x = Math.max(-1, Math.min(1, py)) * LEAN_X;
   };
   const onLeave = () => { target.x = 0; target.y = 0; };
   window.addEventListener('pointermove', onMove, { passive: true });
@@ -171,12 +178,11 @@ function build(THREE: Three, SVGLoader: Loader, host: HTMLDivElement, onLive: ()
     if (!visible) return;
     raf = requestAnimationFrame(loop);
     const t = (performance.now() - t0) / 1000;
-    cur.x += (target.x - cur.x) * 0.06; cur.y += (target.y - cur.y) * 0.06;
+    cur.x += (target.x - cur.x) * 0.04; cur.y += (target.y - cur.y) * 0.04;
     group.rotation.set(cur.x, cur.y, 0);
     for (const { mesh, i } of letters) {
-      mesh.position.y = -CAP / 2 + Math.sin(t * 1.1 + i * 0.8) * 0.012;
-      mesh.rotation.z = Math.sin(t * 0.8 + i * 1.3) * 0.02;
-      mesh.rotation.x = Math.sin(t * 0.7 + i) * 0.03;
+      mesh.position.y = -CAP / 2 + Math.sin(t * 0.7 + i * 0.8) * 0.004;
+      mesh.rotation.x = Math.sin(t * 0.5 + i) * 0.01;
     }
     renderer.render(scene, camera);
     if (!shown) { shown = true; onLive(); }
