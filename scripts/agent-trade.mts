@@ -16,69 +16,124 @@ if (!key) throw new Error('--key or MUSE_KEY');
 const account = privateKeyToAccount(key);
 const wallet = createWalletClient({ account, chain: robinhood, transport: http('https://rpc.mainnet.chain.robinhood.com', { fetchOptions: { headers: { 'User-Agent': 'musestock-agent/0.1' } } }) });
 
-const KNOWN: Record<string, Address> = { USDG, WETH, ETH: WETH, ...Object.fromEntries(STOCKS.map((s: { symbol: string; address: Address }) => [s.symbol, s.address])) };
+const NATIVE = '0x0000000000000000000000000000000000000000' as Address;
+const KNOWN: Record<string, Address> = { USDG, WETH, ETH: NATIVE, ...Object.fromEntries(STOCKS.map((s: { symbol: string; address: Address }) => [s.symbol, s.address])) };
 const tok = (s: string): Address => (KNOWN[s.toUpperCase()] ?? (s as Address));
-const sell = tok(arg('sell', 'USDG')!), buy = tok(arg('buy', 'META')!);
+const sellArg = arg('sell', 'USDG')!;
+const sell = tok(sellArg), buy = tok(arg('buy', 'META')!);
+const sellingEth = sellArg.toUpperCase() === 'ETH';
 const slippage = Number(arg('slippage', '1'));
 
-const [decSell, decBuy, symSell, symBuy] = await Promise.all([
-  client.readContract({ address: sell, abi: erc20Abi, functionName: 'decimals' }),
-  client.readContract({ address: buy, abi: erc20Abi, functionName: 'decimals' }),
-  client.readContract({ address: sell, abi: erc20Abi, functionName: 'symbol' }),
-  client.readContract({ address: buy, abi: erc20Abi, functionName: 'symbol' }),
-]);
+const isNative = (t: Address) => lower(t) === NATIVE;
+const meta = async (t: Address): Promise<{ dec: number; sym: string }> => isNative(t) ? { dec: 18, sym: 'ETH' } : ({
+  dec: await client.readContract({ address: t, abi: erc20Abi, functionName: 'decimals' }),
+  sym: await client.readContract({ address: t, abi: erc20Abi, functionName: 'symbol' }),
+});
+const balance = async (t: Address): Promise<bigint> => isNative(t) ? client.getBalance({ address: account.address }) : client.readContract({ address: t, abi: erc20Abi, functionName: 'balanceOf', args: [account.address] });
+const [{ dec: decSell, sym: symSell }, { dec: decBuy, sym: symBuy }] = await Promise.all([meta(sell), meta(buy)]);
 const amountIn = parseUnits(arg('amount', '1')!, decSell);
 
-// 1. the deepest v4 pool for this pair, from DexScreener, and its key
+// 0. what the wallet actually has, before spending gas on approvals
+const [ethBal, sellBal] = await Promise.all([client.getBalance({ address: account.address }), balance(sell)]);
+console.log(`${account.address}: ${formatUnits(ethBal, 18)} ETH, ${formatUnits(sellBal, decSell)} ${symSell}`);
+if (sellingEth) {
+  if (ethBal < amountIn + parseUnits('0.0004', 18)) throw new Error(`not enough ETH: selling ${formatUnits(amountIn, 18)} plus gas`);
+} else if (sellBal < amountIn) {
+  throw new Error(`not enough ${symSell}: wallet holds ${formatUnits(sellBal, decSell)}, asked to sell ${formatUnits(amountIn, decSell)}. fund it first (USDG ${USDG}).`);
+}
+if (ethBal < parseUnits('0.0002', 18)) throw new Error('no ETH for gas');
+
 type Pair = { chainId: string; dexId: string; pairAddress: string; labels?: string[]; priceUsd: string; liquidity?: { usd?: number }; baseToken: { address: string }; quoteToken: { address: string }; priceNative: string };
-const pairs = (await (await fetch(`https://api.dexscreener.com/tokens/v1/robinhood/${buy}`, { headers: { 'User-Agent': 'musestock-agent/0.1' } })).json()) as Pair[];
-const pool = pairs
-  .filter((p) => p.chainId === 'robinhood' && p.dexId === 'uniswap' && p.labels?.includes('v4') && p.pairAddress.length === 66)
-  .filter((p) => [lower(p.baseToken.address), lower(p.quoteToken.address)].sort().join() === [lower(sell), lower(buy)].sort().join())
-  .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
-if (!pool) throw new Error(`no v4 pool for ${symSell}/${symBuy} on DexScreener`);
-const [c0, c1] = [lower(sell), lower(buy)].sort() as [Address, Address];
-const keyOf = (fee: number, tickSpacing: number, hooks: Address) => keccak256(encodeAbiParameters(
-  [{ type: 'address' }, { type: 'address' }, { type: 'uint24' }, { type: 'int24' }, { type: 'address' }], [c0, c1, fee, tickSpacing, hooks]));
-const zero = '0x0000000000000000000000000000000000000000' as Address;
-let poolKey: { fee: number; tickSpacing: number; hooks: Address } | null = null;
-outer: for (const fee of [100, 500, 3000, 10000, 8388608]) for (const ts of [1, 10, 60, 200, 100, 50, 20, 5]) {
-  if (keyOf(fee, ts, zero) === lower(pool.pairAddress)) { poolKey = { fee, tickSpacing: ts, hooks: zero }; break outer; }
-}
-if (!poolKey) throw new Error(`pool ${pool.pairAddress} has a hook or an unusual key; trade it through the Uniswap app instead`);
-const zeroForOne = lower(sell) === c0;
-
-// 2. approvals: token → Permit2 (once), Permit2 → Universal Router (once)
 const permit2Abi = parseAbi(['function approve(address token, address spender, uint160 amount, uint48 expiration)', 'function allowance(address, address, address) view returns (uint160, uint48, uint48)']);
-const allowance = await client.readContract({ address: sell, abi: erc20Abi, functionName: 'allowance', args: [account.address, PERMIT2] });
-if (allowance < amountIn) {
-  const h = await wallet.writeContract({ address: sell, abi: erc20Abi, functionName: 'approve', args: [PERMIT2, maxUint256] });
-  await client.waitForTransactionReceipt({ hash: h }); console.log('approved permit2', h);
-}
-const [p2amt, p2exp] = await client.readContract({ address: PERMIT2, abi: permit2Abi, functionName: 'allowance', args: [account.address, sell, UNIVERSAL_ROUTER] });
-if (p2amt < amountIn || p2exp < Math.floor(Date.now() / 1000) + 3600) {
-  const h = await wallet.writeContract({ address: PERMIT2, abi: permit2Abi, functionName: 'approve', args: [sell, UNIVERSAL_ROUTER, maxUint160, 2 ** 48 - 1] });
-  await client.waitForTransactionReceipt({ hash: h }); console.log('approved router on permit2', h);
-}
-
-// 3. the swap: V4_SWAP = SWAP_EXACT_IN_SINGLE, SETTLE_ALL, TAKE_ALL
-// priceNative is quote per base: selling the base yields amount×price of quote, selling the quote yields amount÷price of base.
-const sellingBase = lower(sell) === lower(pool.baseToken.address);
-const expectedOut = sellingBase ? Number(formatUnits(amountIn, decSell)) * Number(pool.priceNative) : Number(formatUnits(amountIn, decSell)) / Number(pool.priceNative);
-const minOut = parseUnits((expectedOut * (1 - slippage / 100)).toFixed(decBuy), decBuy);
-
-const poolKeyTuple = { type: 'tuple', components: [{ name: 'currency0', type: 'address' }, { name: 'currency1', type: 'address' }, { name: 'fee', type: 'uint24' }, { name: 'tickSpacing', type: 'int24' }, { name: 'hooks', type: 'address' }] } as const;
-const swapParams = encodeAbiParameters(
-  [{ type: 'tuple', components: [{ name: 'poolKey', ...poolKeyTuple }, { name: 'zeroForOne', type: 'bool' }, { name: 'amountIn', type: 'uint128' }, { name: 'amountOutMinimum', type: 'uint128' }, { name: 'hookData', type: 'bytes' }] }],
-  [{ poolKey: { currency0: c0, currency1: c1, fee: poolKey.fee, tickSpacing: poolKey.tickSpacing, hooks: poolKey.hooks }, zeroForOne, amountIn, amountOutMinimum: minOut, hookData: '0x' }]);
-const settle = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }], [sell, amountIn]);
-const take = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }], [buy, minOut]);
-const actions = encodePacked(['uint8', 'uint8', 'uint8'], [0x06, 0x0c, 0x0f]);
-const v4Input = encodeAbiParameters([{ type: 'bytes' }, { type: 'bytes[]' }], [actions, [swapParams, settle, take]]);
 const routerAbi = parseAbi(['function execute(bytes commands, bytes[] inputs, uint256 deadline) payable']);
-const data = encodeFunctionData({ abi: routerAbi, functionName: 'execute', args: ['0x10', [v4Input], BigInt(Math.floor(Date.now() / 1000) + 600)] });
+const zero = '0x0000000000000000000000000000000000000000' as Address;
+const poolKeyTuple = { type: 'tuple', components: [{ name: 'currency0', type: 'address' }, { name: 'currency1', type: 'address' }, { name: 'fee', type: 'uint24' }, { name: 'tickSpacing', type: 'int24' }, { name: 'hooks', type: 'address' }] } as const;
 
-console.log(`swap ${formatUnits(amountIn, decSell)} ${symSell} → ≥ ${formatUnits(minOut, decBuy)} ${symBuy}  (pool fee ${poolKey.fee / 1e4}%, spacing ${poolKey.tickSpacing})`);
-const hash = await wallet.sendTransaction({ to: UNIVERSAL_ROUTER, data, chain: robinhood });
-const rc = await client.waitForTransactionReceipt({ hash });
-console.log(rc.status, `https://robinhoodchain.blockscout.com/tx/${hash}`);
+const symOf = (t: Address) => Object.entries(KNOWN).find(([, v]) => lower(v) === lower(t))?.[0] ?? 'USDG';
+/** The deepest Uniswap pool (v3 or v4) between two currencies, per DexScreener. Native ETH is address(0) in v4. */
+async function bestPool(a: Address, b: Address): Promise<Pair[]> {
+  // Ask for both tokens: DexScreener caps the list per token, and USDG is a quote in thousands of pools.
+  const H = { headers: { 'User-Agent': 'musestock-agent/0.1' } };
+  const urls = [a, b].filter((t) => !isNative(t)).map((t) => `https://api.dexscreener.com/tokens/v1/robinhood/${t}`);
+  if (isNative(a) || isNative(b)) urls.push(`https://api.dexscreener.com/latest/dex/search?q=ETH%20${isNative(a) ? symOf(b) : symOf(a)}`);
+  const pairs = (await Promise.all(urls.map(async (u) => { const j = await (await fetch(u, H)).json(); return (Array.isArray(j) ? j : j.pairs ?? []) as Pair[]; }))).flat();
+  const want = [lower(a), lower(b)].sort().join();
+  return pairs
+    .filter((p) => p.chainId === 'robinhood' && p.dexId === 'uniswap' && (p.labels?.includes('v4') || p.labels?.includes('v3')))
+    .filter((p) => [lower(p.baseToken.address), lower(p.quoteToken.address)].sort().join() === want)
+    .sort((x, y) => (y.liquidity?.usd ?? 0) - (x.liquidity?.usd ?? 0));
+}
+const FEES = [100, 200, 250, 300, 400, 500, 1000, 2500, 3000, 5000, 10000, 20000, 30000, 8388608];
+const SPACINGS = [1, 2, 5, 8, 10, 15, 20, 25, 30, 40, 50, 60, 100, 120, 150, 200, 250, 300, 500, 1000];
+/** Recover a hookless v4 pool key from its id, or null if the pool has a hook / odd key. */
+function v4Key(c0: Address, c1: Address, poolId: string): { fee: number; tickSpacing: number } | null {
+  const keyOf = (fee: number, ts: number) => keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'address' }, { type: 'uint24' }, { type: 'int24' }, { type: 'address' }], [c0, c1, fee, ts, zero]));
+  for (const fee of FEES) for (const ts of SPACINGS) if (keyOf(fee, ts) === lower(poolId)) return { fee, tickSpacing: ts };
+  return null;
+}
+
+/** Token → Permit2 (once) and Permit2 → Universal Router (once). */
+async function ensureApprovals(token: Address, amount: bigint) {
+  const allowance = await client.readContract({ address: token, abi: erc20Abi, functionName: 'allowance', args: [account.address, PERMIT2] });
+  if (allowance < amount) {
+    const h = await wallet.writeContract({ address: token, abi: erc20Abi, functionName: 'approve', args: [PERMIT2, maxUint256] });
+    await client.waitForTransactionReceipt({ hash: h }); console.log('approved permit2', h);
+  }
+  const [p2amt, p2exp] = await client.readContract({ address: PERMIT2, abi: permit2Abi, functionName: 'allowance', args: [account.address, token, UNIVERSAL_ROUTER] });
+  if (p2amt < amount || p2exp < Math.floor(Date.now() / 1000) + 3600) {
+    const h = await wallet.writeContract({ address: PERMIT2, abi: permit2Abi, functionName: 'approve', args: [token, UNIVERSAL_ROUTER, maxUint160, 2 ** 48 - 1] });
+    await client.waitForTransactionReceipt({ hash: h }); console.log('approved router on permit2', h);
+  }
+}
+
+/** One exact-input swap through the Universal Router; returns what arrived. */
+async function swapOnce(from: Address, to: Address, amount: bigint): Promise<bigint> {
+  const [{ dec: dIn, sym: sIn }, { dec: dOut, sym: sOut }] = await Promise.all([meta(from), meta(to)]);
+  // Deepest pool we can actually address: v3, or a v4 pool whose key we can rebuild (no hook).
+  const [c0, c1] = [lower(from), lower(to)].sort() as [Address, Address];
+  let pool: Pair | undefined; let key: { fee: number; tickSpacing: number } | null = null;
+  for (const p of await bestPool(from, to)) {
+    if (p.labels?.includes('v3')) { if (!isNative(from) && !isNative(to)) { pool = p; break; } continue; }
+    key = v4Key(c0, c1, p.pairAddress); if (key) { pool = p; break; }
+  }
+  if (!pool) throw new Error(`no addressable uniswap pool for ${sIn}/${sOut}`);
+  const sellingBase = lower(from) === lower(pool.baseToken.address);
+  const expectedOut = sellingBase ? Number(formatUnits(amount, dIn)) * Number(pool.priceNative) : Number(formatUnits(amount, dIn)) / Number(pool.priceNative);
+  const minOut = parseUnits((expectedOut * (1 - slippage / 100)).toFixed(dOut), dOut);
+  if (!isNative(from)) await ensureApprovals(from, amount);
+  else if (!pool.labels?.includes('v4')) throw new Error('native ETH only trades on v4 pools');
+  let commands: Hex; let input: Hex;
+  if (pool.labels?.includes('v4')) {
+    if (!key) throw new Error('unreachable: v4 pool without key');
+    // Robinhood's fork: ExactInputSingleParams has minHopPriceX36 (uint256) between amountOutMinimum and hookData.
+    const swapParams = encodeAbiParameters(
+      [{ type: 'tuple', components: [{ name: 'poolKey', ...poolKeyTuple }, { name: 'zeroForOne', type: 'bool' }, { name: 'amountIn', type: 'uint128' }, { name: 'amountOutMinimum', type: 'uint128' }, { name: 'minHopPriceX36', type: 'uint256' }, { name: 'hookData', type: 'bytes' }] }],
+      [{ poolKey: { currency0: c0, currency1: c1, fee: key.fee, tickSpacing: key.tickSpacing, hooks: zero }, zeroForOne: lower(from) === c0, amountIn: amount, amountOutMinimum: minOut, minHopPriceX36: 0n, hookData: '0x' }]);
+    const settle = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }, { type: 'bool' }], [from, amount, true]);
+    const take = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }], [to, minOut]);
+    const actions = encodePacked(['uint8', 'uint8', 'uint8'], [0x06, 0x0b, 0x0f]); // SWAP_EXACT_IN_SINGLE, SETTLE (payer = user), TAKE_ALL
+    commands = '0x10'; input = encodeAbiParameters([{ type: 'bytes' }, { type: 'bytes[]' }], [actions, [swapParams, settle, take]]);
+    console.log(`v4: ${formatUnits(amount, dIn)} ${sIn} → ≥ ${formatUnits(minOut, dOut)} ${sOut} (fee ${key.fee / 1e4}%)`);
+  } else {
+    const fee = await client.readContract({ address: pool.pairAddress as Address, abi: parseAbi(['function fee() view returns (uint24)']), functionName: 'fee' });
+    const path = encodePacked(['address', 'uint24', 'address'], [from, Number(fee), to]);
+    commands = '0x00'; // V3_SWAP_EXACT_IN, paid by the user through Permit2
+    input = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }, { type: 'uint256' }, { type: 'bytes' }, { type: 'bool' }], [account.address, amount, minOut, path, true]);
+    console.log(`v3: ${formatUnits(amount, dIn)} ${sIn} → ≥ ${formatUnits(minOut, dOut)} ${sOut} (fee ${Number(fee) / 1e4}%)`);
+  }
+  const before: bigint = await balance(to);
+  const data = encodeFunctionData({ abi: routerAbi, functionName: 'execute', args: [commands, [input], BigInt(Math.floor(Date.now() / 1000) + 600)] });
+  // Native input rides along as msg.value; the router settles it into the PoolManager.
+  const hash = await wallet.sendTransaction({ to: UNIVERSAL_ROUTER, data, chain: robinhood, value: isNative(from) ? amount : 0n });
+  const rc = await client.waitForTransactionReceipt({ hash });
+  const after: bigint = await balance(to);
+  const got: bigint = after - before;
+  console.log(rc.status, `https://robinhoodchain.blockscout.com/tx/${hash}`, `+${formatUnits(got, dOut)} ${sOut}`);
+  if (rc.status !== 'success') throw new Error('swap reverted');
+  return got;
+}
+
+// Route: direct if a pool exists, otherwise through USDG, which every stock and most memes pair against.
+if ((await bestPool(sell, buy)).length) await swapOnce(sell, buy, amountIn);
+else if (lower(sell) !== lower(USDG) && lower(buy) !== lower(USDG)) { const mid = await swapOnce(sell, USDG, amountIn); await swapOnce(USDG, buy, mid); }
+else throw new Error(`no route for ${symSell} → ${symBuy}`);

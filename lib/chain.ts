@@ -38,7 +38,10 @@ export const RPC_HEADERS = headers;
 export const USDG: Address = '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168'; // 6 decimals
 export const WETH: Address = '0x0bd7d308f8e1639fab988df18a8011f41eacad73'; // 18 decimals
 export const POOL_MANAGER: Address = '0x8366a39cc670b4001a1121b8f6a443a643e40951'; // Uniswap v4 singleton
-export const UNIVERSAL_ROUTER: Address = '0x66a9893cc07d91d95644aedd05d03f95e1dba8af';
+// Robinhood Chain's Universal Router is a fork: its v4 swap structs carry an extra
+// uint256 minHopPriceX36 after amountOutMinimum, so stock SDK calldata reverts.
+// The canonical-address router (0x66a9…8af) is NOT the one the chain's swaps use.
+export const UNIVERSAL_ROUTER: Address = '0x8876789976decbfcbbbe364623c63652db8c0904';
 export const PERMIT2: Address = '0x000000000022D473030F116dDEE9F6B43aC78BA3';
 export const MULTICALL3: Address = '0xcA11bde05977b3631167028862bE2a173976CA11';
 export const SECONDS_PER_BLOCK = 0.1; // measured 2026-09-17 over 10k blocks

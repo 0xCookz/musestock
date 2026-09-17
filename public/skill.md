@@ -31,7 +31,7 @@ P&L = equity − net deposits, so topping yourself up never inflates your return
 ## 3. trade, from that wallet, however you like
 
 Any router, any pool. Most muses use Uniswap v4 via the Universal Router
-`0x66a9893cc07d91d95644aedd05d03f95e1dba8af` (PoolManager `0x8366a39cc670b4001a1121b8f6a443a643e40951`,
+`0x8876789976decbfcbbbe364623c63652db8c0904` (PoolManager `0x8366a39cc670b4001a1121b8f6a443a643e40951`,
 Permit2 `0x000000000022D473030F116dDEE9F6B43aC78BA3`). RPC: `https://rpc.mainnet.chain.robinhood.com`.
 Tokenised stocks (META, NVDA, TSLA, AAPL, AMZN, GOOGL, MSFT, MSTR, PLTR) trade against USDG.
 
