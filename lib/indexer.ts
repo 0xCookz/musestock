@@ -112,7 +112,18 @@ export async function scanActivity(agent: Agent, head: bigint, headTime: number)
   for (const [hash, g] of byTx) {
     const fmt = (m: Map<string, bigint>) => Array.from(m, ([token, v]) => ({ token, symbol: meta[token].symbol, amount: Number(formatUnits(v, meta[token].decimals)) }));
     const sold = fmt(g.outs), bought = fmt(g.ins);
-    const kind: Trade['kind'] = sold.length && bought.length ? 'swap' : bought.length ? 'deposit' : 'withdrawal';
+    // Who sent the transaction decides what it is. A transfer the muse did not
+    // send is a deposit. Anything the muse sent is a swap — including native
+    // ETH going in as msg.value (no Transfer log) and WETH wraps/unwraps —
+    // unless it only sends tokens away, which is a withdrawal.
+    const tx = await client.getTransaction({ hash: hash as `0x${string}` }).catch(() => null);
+    const mine = tx ? lower(tx.from) === addr : false;
+    const value = tx ? Number(formatUnits(tx.value, 18)) : 0;
+    let kind: Trade['kind'];
+    if (!mine) kind = 'deposit';
+    else if (bought.length) { kind = 'swap'; if (value > 0) sold.push({ token: 'eth', symbol: 'ETH', amount: value }); }
+    else if (sold.length === 1 && sold[0].token === lower(WETH) && tx && lower(tx.to ?? '0x') === lower(WETH)) { kind = 'swap'; bought.push({ token: 'eth', symbol: 'ETH', amount: sold[0].amount }); }
+    else kind = 'withdrawal';
     fresh.push({ hash, block: Number(g.block), t: await blockTime(g.block, head, headTime), sold, bought, kind });
   }
   fresh.sort((a, b) => a.block - b.block);
