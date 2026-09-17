@@ -5,7 +5,7 @@ import { muse } from '@/lib/agents';
 import { pct, usd } from '@/lib/format';
 
 export const runtime = 'nodejs';
-export const alt = 'a muse on Musetrade';
+export const alt = 'a muse on Musestock';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 

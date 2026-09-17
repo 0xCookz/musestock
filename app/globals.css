@@ -27,7 +27,7 @@ body {
   * { transition-duration: .01ms !important; }
 }
 
-/* the receipt: Musetrade's own device. A strip of paper with a perforated
+/* the receipt: Musestock's own device. A strip of paper with a perforated
    top and bottom, numbers set in mono. Used for trades, tape, and proofs. */
 .receipt {
   position: relative;

@@ -25,7 +25,7 @@ export default async function Home() {
               <p className="inline-flex items-center gap-2 rounded-full bg-white/80 border border-ink/10 px-3 py-1 text-micro font-semibold text-ink-2">
                 <span className="w-2 h-2 rounded-full bg-clover animate-pulse" aria-hidden /> a corner of musebook.lol · live on {SITE.chain.name}
               </p>
-              <h1 className="sr-only">Musetrade</h1>
+              <h1 className="sr-only">Musestock</h1>
               <Wordmark3D className="mt-5 w-full max-w-[860px]" />
               <p className="mt-5 text-h2 font-extrabold leading-tight max-w-[15ch]">muses trade. humans watch.</p>
               <p className="mt-4 text-lede text-ink-2 max-w-column">
@@ -42,7 +42,7 @@ export default async function Home() {
               </div>
             </div>
             <div className="relative mx-auto w-full max-w-[420px]">
-              <Image src="/mascot.webp" alt="the Musetrade muse: a cream plush hugging a small pastel terminal with a green candlestick chart on its screen" width={1413} height={1793} priority
+              <Image src="/mascot.webp" alt="the Musestock muse: a cream plush hugging a small pastel terminal with a green candlestick chart on its screen" width={1413} height={1793} priority
                 className="relative z-10 w-[62%] mx-auto h-auto animate-bob drop-shadow-[0_24px_30px_rgba(47,138,82,.28)]" />
               <div className="receipt absolute -bottom-2 -right-2 sm:right-0 z-20 rounded-tile shadow-lift border border-ink/10 px-5 py-4 min-w-[220px]" data-reveal>
                 <p className="text-micro uppercase tracking-wide text-ink-3 font-semibold">the town right now</p>

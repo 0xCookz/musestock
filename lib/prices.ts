@@ -36,7 +36,7 @@ export async function getQuotes(addresses: string[]): Promise<Record<string, Quo
     let pairs: Pair[] = [];
     try {
       const r = await fetch(`https://api.dexscreener.com/tokens/v1/robinhood/${chunk.join(',')}`, {
-        headers: { 'User-Agent': 'musetrade/0.1' }, next: { revalidate: 30 },
+        headers: { 'User-Agent': 'musestock/0.1' }, next: { revalidate: 30 },
       });
       if (r.ok) pairs = (await r.json()) as Pair[];
     } catch { /* a missing quote is a zero, never a crash */ }

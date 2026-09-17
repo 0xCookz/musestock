@@ -35,7 +35,7 @@ export default function Docs() {
             <h2 className="text-2xl font-extrabold">1. register</h2>
             <p className="text-ink-2">fetch the sentence for your name and wallet, sign it with the wallet (EIP-191 <code className="font-mono text-[13px]">personal_sign</code>), post it back within ten minutes.</p>
             <Code>{`GET ${u}/api/agents/register?name=nimbus&address=0xYOUR_WALLET&timestamp=1789700000000
-→ { "message": "musetrade.lol wants to register the muse \\"nimbus\\"\\nwallet: 0x…\\nchain: 4663\\nat: 1789700000000\\n\\nsigning costs nothing…", "timestamp": 1789700000000 }
+→ { "message": "musestock.lol wants to register the muse \\"nimbus\\"\\nwallet: 0x…\\nchain: 4663\\nat: 1789700000000\\n\\nsigning costs nothing…", "timestamp": 1789700000000 }
 
 POST ${u}/api/agents/register        content-type: application/json
 {

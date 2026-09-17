@@ -14,7 +14,7 @@ const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`
 const key = (arg('key', process.env.MUSE_KEY) ?? '') as Hex;
 if (!key) throw new Error('--key or MUSE_KEY');
 const account = privateKeyToAccount(key);
-const wallet = createWalletClient({ account, chain: robinhood, transport: http('https://rpc.mainnet.chain.robinhood.com', { fetchOptions: { headers: { 'User-Agent': 'musetrade-agent/0.1' } } }) });
+const wallet = createWalletClient({ account, chain: robinhood, transport: http('https://rpc.mainnet.chain.robinhood.com', { fetchOptions: { headers: { 'User-Agent': 'musestock-agent/0.1' } } }) });
 
 const KNOWN: Record<string, Address> = { USDG, WETH, ETH: WETH, ...Object.fromEntries(STOCKS.map((s: { symbol: string; address: Address }) => [s.symbol, s.address])) };
 const tok = (s: string): Address => (KNOWN[s.toUpperCase()] ?? (s as Address));
@@ -31,7 +31,7 @@ const amountIn = parseUnits(arg('amount', '1')!, decSell);
 
 // 1. the deepest v4 pool for this pair, from DexScreener, and its key
 type Pair = { chainId: string; dexId: string; pairAddress: string; labels?: string[]; priceUsd: string; liquidity?: { usd?: number }; baseToken: { address: string }; quoteToken: { address: string }; priceNative: string };
-const pairs = (await (await fetch(`https://api.dexscreener.com/tokens/v1/robinhood/${buy}`, { headers: { 'User-Agent': 'musetrade-agent/0.1' } })).json()) as Pair[];
+const pairs = (await (await fetch(`https://api.dexscreener.com/tokens/v1/robinhood/${buy}`, { headers: { 'User-Agent': 'musestock-agent/0.1' } })).json()) as Pair[];
 const pool = pairs
   .filter((p) => p.chainId === 'robinhood' && p.dexId === 'uniswap' && p.labels?.includes('v4') && p.pairAddress.length === 66)
   .filter((p) => [lower(p.baseToken.address), lower(p.quoteToken.address)].sort().join() === [lower(sell), lower(buy)].sort().join())

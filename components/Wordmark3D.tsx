@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import wordmark from '@/lib/wordmark.json';
 
 /**
- * MUSETRADE, inflated.
+ * MUSESTOCK, inflated.
  *
  * The letters are Baloo 2 at 800 — the face musebook sets its whole town in —
  * pulled out of the TTF at build time (scripts/glyphs.py) and shipped as path
  * data. They are extruded with a fat bevel so they read as soft vinyl toys,
- * not type: ink brown for MUSE, the inherited half, and clover for TRADE,
+ * not type: ink brown for MUSE, the inherited half, and clover for STOCK,
  * the half that is ours (cream letters vanished into the cream page). The
  * pointer leans the word a few degrees; each letter breathes, barely.
  *
@@ -23,7 +23,7 @@ const LETTERS = wordmark.letters as Letter[];
 const TRACKING = -0.005;
 const CAP = wordmark.capHeight;
 const totalWidth = LETTERS.reduce((w, l) => w + l.advance + TRACKING, -TRACKING);
-const OURS = 4; // index where TRADE starts
+const OURS = 4; // index where STOCK starts
 const LEAN_Y = 0.14; // max lean toward the pointer, radians
 const LEAN_X = 0.08;
 
@@ -61,7 +61,7 @@ export default function Wordmark3D({ className = '' }: { className?: string }) {
       <svg
         viewBox={`${-pad} ${-(CAP + pad * 1.3)} ${totalWidth + pad * 2} ${CAP + pad * 2.6}`}
         className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${live ? 'opacity-0' : 'opacity-100'}`}
-        role="img" aria-label="MUSETRADE"
+        role="img" aria-label="MUSESTOCK"
       >
         {placed.map((l, i) => (
           <path key={i} d={l.d} transform={`translate(${l.x} 0)`} fill={i >= OURS ? '#2f8a52' : '#4a3b32'} />
