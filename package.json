@@ -17,7 +17,9 @@
     "compile": "tsx contracts/script/compile.ts",
     "test:contracts": "tsx contracts/script/test.ts",
     "deploy:vaults": "tsx contracts/script/deploy.mts",
-    "routes": "tsx contracts/script/routes.mts"
+    "routes": "tsx contracts/script/routes.mts",
+    "vault:open": "tsx scripts/vault-open.mts",
+    "vault:admin": "tsx scripts/vault-admin.mts"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
