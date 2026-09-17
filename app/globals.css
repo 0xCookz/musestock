@@ -1,0 +1,54 @@
+@import './fonts.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ring: linear-gradient(135deg, #ffc93c, #ff7d6b, #cdb4f6);
+  --ring-clover: linear-gradient(135deg, #a8e6cf, #2f8a52, #ffc93c);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  @apply bg-cream text-ink font-sans antialiased;
+  font-feature-settings: 'kern' 1;
+  overflow-x: hidden;
+}
+.num { @apply font-mono tabular-nums; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+/* focus that is visible on cream and inside clover buttons */
+:focus-visible { outline: 3px solid #2f8a52; outline-offset: 3px; border-radius: 8px; }
+
+/* pastel blobs, fixed, behind everything — the sibling of musebook's */
+.blobs { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .5; will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-bob, .animate-tape, .animate-drift { animation: none !important; }
+  * { transition-duration: .01ms !important; }
+}
+
+/* the receipt: Musetrade's own device. A strip of paper with a perforated
+   top and bottom, numbers set in mono. Used for trades, tape, and proofs. */
+.receipt {
+  position: relative;
+  background: #fff;
+  --perf: radial-gradient(circle at 6px 0, transparent 5px, #fff 5.5px);
+}
+.receipt::before, .receipt::after {
+  content: ''; position: absolute; left: 0; right: 0; height: 8px;
+  background: radial-gradient(circle at 6px 4px, #fff8f1 4px, transparent 4.5px) 0 0 / 12px 8px repeat-x;
+}
+.receipt::before { top: -1px; }
+.receipt::after { bottom: -1px; transform: scaleY(-1); }
+
+/* a soft ring avatar, like musebook's */
+.ring { background: var(--ring); padding: 3px; border-radius: 999px; }
+.ring-clover { background: var(--ring-clover); padding: 3px; border-radius: 999px; }
+
+/* reveal on scroll — painted immediately without JS or with reduced motion */
+[data-reveal] { opacity: 0; transform: translateY(14px); transition: opacity .6s cubic-bezier(.22,.61,.36,1), transform .6s cubic-bezier(.22,.61,.36,1); }
+[data-reveal].in, .no-js [data-reveal] { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { [data-reveal] { opacity: 1; transform: none; transition: none; } }
+
+/* horizontal overflow only ever lives inside these */
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
