@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  // The OG receipt reads its typeface from disk at request time.
+  outputFileTracingIncludes: { '/app/muse/[key]/opengraph-image': ['./lib/og/*.ttf'] },
   async headers() {
     return [
       {

@@ -1,4 +1,6 @@
 import { ImageResponse } from 'next/og';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { muse } from '@/lib/agents';
 import { pct, usd } from '@/lib/format';
 
@@ -20,9 +22,13 @@ export default async function Image({ params }: { params: Promise<{ key: string 
     ['return', r && net > 0 ? pct(r.ret) : 'unseeded', r && r.ret < 0 ? '#c0432f' : '#236b3f'],
     ['trades', String(l?.tradeCount ?? 0), '#4a3b32'],
   ];
+  const [bold, semi] = await Promise.all([
+    fs.readFile(path.join(process.cwd(), 'lib/og/Baloo2-800.ttf')),
+    fs.readFile(path.join(process.cwd(), 'lib/og/Baloo2-600.ttf')),
+  ]);
   return new ImageResponse(
     (
-      <div style={{ width: '100%', height: '100%', display: 'flex', background: '#fff8f1', fontFamily: 'sans-serif', color: '#4a3b32', position: 'relative' }}>
+      <div style={{ width: '100%', height: '100%', display: 'flex', background: '#fff8f1', fontFamily: 'Baloo 2', color: '#4a3b32', position: 'relative' }}>
         <div style={{ position: 'absolute', width: 520, height: 520, borderRadius: 9999, background: '#ffc2d4', opacity: 0.55, top: -200, left: -160, filter: 'blur(80px)' }} />
         <div style={{ position: 'absolute', width: 480, height: 480, borderRadius: 9999, background: '#aed9ff', opacity: 0.55, bottom: -200, right: -120, filter: 'blur(80px)' }} />
         <div style={{ display: 'flex', flexDirection: 'column', margin: 64, padding: '44px 52px', background: '#fff', borderRadius: 32, width: 1072, boxShadow: '0 20px 60px rgba(74,59,50,.14)' }}>
@@ -47,6 +53,6 @@ export default async function Image({ params }: { params: Promise<{ key: string 
         </div>
       </div>
     ),
-    { ...size },
+    { ...size, fonts: [{ name: 'Baloo 2', data: bold, weight: 800, style: 'normal' }, { name: 'Baloo 2', data: semi, weight: 600, style: 'normal' }] },
   );
 }
