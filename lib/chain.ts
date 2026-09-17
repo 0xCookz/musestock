@@ -13,15 +13,13 @@ export const robinhood = {
 // The official RPC 403s a bare client; publicnode is faster but rejects log
 // queries over history. Order: official (logs + history) then publicnode.
 // Request batching is deliberately off: on this chain it is ~15x slower.
-const headers = { 'User-Agent': 'musestock/0.1 (+https://musestock.lol)' };
-export const client = createPublicClient({
-  chain: robinhood,
-  transport: fallback([
+const headers = { 'User-Agent': 'musestock/0.1 (+https://musestock.app)' };
+export const transport = () => fallback([
     http('https://rpc.mainnet.chain.robinhood.com', { batch: false, fetchOptions: { headers }, timeout: 20_000, retryCount: 1 }),
     http('https://robinhood.drpc.org', { batch: false, fetchOptions: { headers }, timeout: 20_000, retryCount: 1 }),
     http('https://robinhood-rpc.publicnode.com', { batch: false, fetchOptions: { headers }, timeout: 20_000, retryCount: 1 }),
-  ]),
-});
+  ]);
+export const client = createPublicClient({ chain: robinhood, transport: transport() });
 
 /**
  * Log endpoints, in order, with the widest block range each accepts. The

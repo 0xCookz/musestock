@@ -8,13 +8,13 @@
  */
 import { createWalletClient, encodeAbiParameters, encodeFunctionData, encodePacked, formatUnits, http, keccak256, maxUint160, maxUint256, parseAbi, parseUnits, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { client, erc20Abi, PERMIT2, robinhood, STOCKS, UNIVERSAL_ROUTER, USDG, WETH, lower } from '../lib/chain';
+import { client, erc20Abi, PERMIT2, robinhood, STOCKS, transport, UNIVERSAL_ROUTER, USDG, WETH, lower } from '../lib/chain';
 
 const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`); return i > -1 ? process.argv[i + 1] : d; };
 const key = (arg('key', process.env.MUSE_KEY) ?? '') as Hex;
 if (!key) throw new Error('--key or MUSE_KEY');
 const account = privateKeyToAccount(key);
-const wallet = createWalletClient({ account, chain: robinhood, transport: client.transport as never }); // same fallback RPC set as the reads
+const wallet = createWalletClient({ account, chain: robinhood, transport: transport() }); // same fallback RPC set as the reads
 
 const NATIVE = '0x0000000000000000000000000000000000000000' as Address;
 const KNOWN: Record<string, Address> = { USDG, WETH, ETH: NATIVE, ...Object.fromEntries(STOCKS.map((s: { symbol: string; address: Address }) => [s.symbol, s.address])) };
@@ -89,13 +89,13 @@ async function ensureApprovals(token: Address, amount: bigint) {
 /** One exact-input swap through the Universal Router; returns what arrived. */
 async function swapOnce(from: Address, to: Address, amount: bigint): Promise<bigint> {
   const [{ dec: dIn, sym: sIn }, { dec: dOut, sym: sOut }] = await Promise.all([meta(from), meta(to)]);
-  // Deepest pool we can actually address: v3, or a v4 pool whose key we can rebuild (no hook).
+  // Deepest pool we can actually address. v4 first (hookless keys we can rebuild);
+  // v3 only when no v4 pool exists — the forked router's v3 leg is unverified here.
   const [c0, c1] = [lower(from), lower(to)].sort() as [Address, Address];
   let pool: Pair | undefined; let key: { fee: number; tickSpacing: number } | null = null;
-  for (const p of await bestPool(from, to)) {
-    if (p.labels?.includes('v3')) { if (!isNative(from) && !isNative(to)) { pool = p; break; } continue; }
-    key = v4Key(c0, c1, p.pairAddress); if (key) { pool = p; break; }
-  }
+  const candidates = await bestPool(from, to);
+  for (const p of candidates) { if (!p.labels?.includes('v4')) continue; key = v4Key(c0, c1, p.pairAddress); if (key) { pool = p; break; } }
+  if (!pool && !isNative(from) && !isNative(to)) pool = candidates.find((p) => p.labels?.includes('v3'));
   if (!pool) throw new Error(`no addressable uniswap pool for ${sIn}/${sOut}`);
   const sellingBase = lower(from) === lower(pool.baseToken.address);
   const expectedOut = sellingBase ? Number(formatUnits(amount, dIn)) * Number(pool.priceNative) : Number(formatUnits(amount, dIn)) / Number(pool.priceNative);
