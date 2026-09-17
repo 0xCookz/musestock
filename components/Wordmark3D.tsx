@@ -79,8 +79,7 @@ function build(THREE: Three, SVGLoader: Loader, host: HTMLDivElement, onLive: ()
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.92;
+  renderer.toneMapping = THREE.NoToneMapping; // ACES desaturates pigment; the card's colours must survive
   host.appendChild(renderer.domElement);
   Object.assign(renderer.domElement.style, { display: 'block', width: '100%', height: '100%' });
 
@@ -104,15 +103,15 @@ function build(THREE: Three, SVGLoader: Loader, host: HTMLDivElement, onLive: ()
   // Saturated like the 2D card: the room is dim so the pigment carries the colour,
   // and the gloss lives only in a tight clearcoat highlight.
   const vinyl = (color: number, sheen: number) => new THREE.MeshPhysicalMaterial({
-    color, roughness: 0.38, metalness: 0, clearcoat: 0.7, clearcoatRoughness: 0.22,
-    sheen: 0.25, sheenColor: new THREE.Color(sheen), sheenRoughness: 0.7, envMapIntensity: 0.18, side: THREE.DoubleSide,
+    color, roughness: 0.42, metalness: 0, clearcoat: 0.6, clearcoatRoughness: 0.25,
+    sheen: 0.12, sheenColor: new THREE.Color(sheen), sheenRoughness: 0.8, envMapIntensity: 0.12, side: THREE.DoubleSide,
   });
-  const cream = vinyl(0x4a3b32, 0x8a6a55); // the site's ink, as in the OG card
-  const clover = vinyl(0x2f8a52, 0x3f9f66); // the site's clover, as in the OG card
+  const cream = vinyl(0x3e2e26, 0x8a6a55); // a step under the ink: lights add back what the card shows
+  const clover = vinyl(0x27804a, 0x3f9f66);
 
-  scene.add(new THREE.HemisphereLight(0xfff8f1, 0xd9c2b0, 0.55));
-  const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-2, 3, 4); scene.add(key);
-  const fill = new THREE.DirectionalLight(0xcdb4f6, 0.35); fill.position.set(3, -1, 2); scene.add(fill);
+  scene.add(new THREE.HemisphereLight(0xfff8f1, 0xd9c2b0, 0.4));
+  const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(-2, 3, 4); scene.add(key);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.3); fill.position.set(3, -1, 2); scene.add(fill);
 
   const group = new THREE.Group();
   const placed = layout();
