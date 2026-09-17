@@ -133,7 +133,7 @@ export async function scanActivity(agent: Agent, head: bigint, headTime: number)
 }
 
 /** Live holdings and equity, from balances and prices, right now. */
-export async function valuation(agent: Agent, activity: Activity): Promise<{ holdings: Holding[]; equity: number; deposits: number; withdrawals: number }> {
+export async function valuation(agent: Agent, activity: Activity): Promise<{ holdings: Holding[]; equity: number; deposits: number; withdrawals: number; gasEth: number }> {
   const addr = lower(agent.address);
   const tokens = Array.from(new Set([lower(USDG), ...activity.tokens]));
   const meta = await tokenMeta(tokens);
@@ -150,15 +150,21 @@ export async function valuation(agent: Agent, activity: Activity): Promise<{ hol
     const price = quotes[t]?.usd ?? 0;
     holdings.push({ token: t, symbol: meta[t].symbol, amount: amt, price, usd: amt * price });
   });
+  // Native ETH arrives without a Transfer log, so the sysop's gas allowance
+  // cannot be told from a deposit. Rule: ETH counts as a position only up to
+  // what the receipts show was bought (net of what was sold); the rest is gas.
   const ethAmt = Number(formatUnits(eth, 18));
-  if (ethAmt > 0) { const p = quotes[lower(WETH)]?.usd ?? 0; holdings.push({ token: 'eth', symbol: 'ETH', amount: ethAmt, price: p, usd: ethAmt * p }); }
+  const netBought = activity.trades.filter((t) => t.kind === 'swap').reduce((n, t) => n + t.bought.filter((x) => x.token === 'eth').reduce((a, b) => a + b.amount, 0) - t.sold.filter((x) => x.token === 'eth').reduce((a, b) => a + b.amount, 0), 0);
+  const counted = Math.min(ethAmt, Math.max(0, netBought));
+  const gasEth = ethAmt - counted;
+  if (counted > 0) { const p = quotes[lower(WETH)]?.usd ?? 0; holdings.push({ token: 'eth', symbol: 'ETH', amount: counted, price: p, usd: counted * p }); }
   holdings.sort((a, b) => b.usd - a.usd);
   // Deposits and withdrawals are counted in dollars at today's price for
   // non-dollar tokens; USDG, which is what the sysop seeds, is exact.
   const val = (x: { token: string; amount: number }) => x.amount * (x.token === lower(USDG) ? 1 : quotes[x.token]?.usd ?? 0);
   const deposits = activity.trades.filter((t) => t.kind === 'deposit').reduce((s, t) => s + t.bought.reduce((a, b) => a + val(b), 0), 0);
   const withdrawals = activity.trades.filter((t) => t.kind === 'withdrawal').reduce((s, t) => s + t.sold.reduce((a, b) => a + val(b), 0), 0);
-  return { holdings, equity: holdings.reduce((s, h) => s + h.usd, 0), deposits, withdrawals };
+  return { holdings, equity: holdings.reduce((s, h) => s + h.usd, 0), deposits, withdrawals, gasEth };
 }
 
 /** Full refresh of one muse: scan, value, remember. */
@@ -169,7 +175,7 @@ export async function refreshAgent(agent: Agent, head?: bigint, headTime?: numbe
   const swaps = activity.trades.filter((t) => t.kind === 'swap');
   const latest: Latest = {
     at: Date.now(), block: Number(head), equity: v.equity, deposits: v.deposits, withdrawals: v.withdrawals,
-    holdings: v.holdings, tradeCount: swaps.length, lastTradeAt: swaps.at(-1)?.t,
+    holdings: v.holdings, tradeCount: swaps.length, lastTradeAt: swaps.at(-1)?.t, gasEth: v.gasEth,
   };
   await store.saveLatest(agent.address, latest);
   const snaps = await store.snapshots(agent.address);

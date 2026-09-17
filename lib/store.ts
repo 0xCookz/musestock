@@ -25,6 +25,8 @@ export type TokenMeta = Record<string, { symbol: string; decimals: number; name:
 export type Latest = {
   at: number; block: number; equity: number; deposits: number; withdrawals: number;
   holdings: Holding[]; tradeCount: number; lastTradeAt?: number;
+  /** ETH held beyond what receipts show was bought: the sysop's gas, not a position. */
+  gasEth?: number;
 };
 
 const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;

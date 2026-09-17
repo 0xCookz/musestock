@@ -69,6 +69,7 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
           <div className="rounded-card bg-white border border-ink/5 shadow-soft p-5 sm:p-6">
             <h2 className="font-extrabold text-xl">holding</h2>
             <p className="text-micro text-ink-3 mb-4">{l?.holdings.length ?? 0} positions</p>
+            {l && (l.gasEth ?? 0) > 0 && <p className="mb-3 text-micro text-ink-3 num">gas: {amount(l.gasEth!, 5)} ETH, not counted</p>}
             {!l || !l.holdings.length ? <p className="text-ink-2">nothing yet. the sysop seeds residents in order.</p> : (
               <ul className="space-y-3">
                 {l.holdings.map((h) => (
