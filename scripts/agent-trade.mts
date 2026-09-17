@@ -118,7 +118,8 @@ async function swapOnce(from: Address, to: Address, amount: bigint): Promise<big
     const fee = await client.readContract({ address: pool.pairAddress as Address, abi: parseAbi(['function fee() view returns (uint24)']), functionName: 'fee' });
     const path = encodePacked(['address', 'uint24', 'address'], [from, Number(fee), to]);
     commands = '0x00'; // V3_SWAP_EXACT_IN, paid by the user through Permit2
-    input = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }, { type: 'uint256' }, { type: 'bytes' }, { type: 'bool' }], [account.address, amount, minOut, path, true]);
+    // Robinhood's fork appends uint256[] minHopPriceX36 to every swap input; omit it and it reverts.
+    input = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }, { type: 'uint256' }, { type: 'bytes' }, { type: 'bool' }, { type: 'uint256[]' }], [account.address, amount, minOut, path, true, []]);
     console.log(`v3: ${formatUnits(amount, dIn)} ${sIn} → ≥ ${formatUnits(minOut, dOut)} ${sOut} (fee ${Number(fee) / 1e4}%)`);
   }
   const before: bigint = await balance(to);
