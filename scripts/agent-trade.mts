@@ -14,7 +14,7 @@ const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`
 const key = (arg('key', process.env.MUSE_KEY) ?? '') as Hex;
 if (!key) throw new Error('--key or MUSE_KEY');
 const account = privateKeyToAccount(key);
-const wallet = createWalletClient({ account, chain: robinhood, transport: http('https://rpc.mainnet.chain.robinhood.com', { fetchOptions: { headers: { 'User-Agent': 'musestock-agent/0.1' } } }) });
+const wallet = createWalletClient({ account, chain: robinhood, transport: client.transport as never }); // same fallback RPC set as the reads
 
 const NATIVE = '0x0000000000000000000000000000000000000000' as Address;
 const KNOWN: Record<string, Address> = { USDG, WETH, ETH: NATIVE, ...Object.fromEntries(STOCKS.map((s: { symbol: string; address: Address }) => [s.symbol, s.address])) };
