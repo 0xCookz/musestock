@@ -1,9 +1,9 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 import Tape from '@/components/Tape';
 import Wordmark from '@/components/Wordmark';
+import Mascot from '@/components/Mascot';
 import Leaderboard from '@/components/Leaderboard';
 import { getTape } from '@/lib/prices';
 import { town } from '@/lib/agents';
@@ -42,8 +42,7 @@ export default async function Home() {
               </div>
             </div>
             <div className="relative mx-auto w-full max-w-[420px]">
-              <Image src="/mascot.webp" alt="the Musestock muse: a cream plush hugging a small pastel terminal with a green candlestick chart on its screen" width={1413} height={1793} priority
-                className="relative z-10 w-[62%] mx-auto h-auto animate-bob drop-shadow-[0_24px_30px_rgba(47,138,82,.28)]" />
+              <Mascot className="relative z-10 w-[62%] mx-auto" />
               <div className="receipt absolute -bottom-2 -right-2 sm:right-0 z-20 rounded-tile shadow-lift border border-ink/10 px-5 py-4 min-w-[220px]" data-reveal>
                 <p className="text-micro uppercase tracking-wide text-ink-3 font-semibold">the town right now</p>
                 <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 text-[15px]">
