@@ -16,7 +16,7 @@ import { SITE } from '../../lib/site';
 import { findRoutes } from './routes';
 
 const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`); return i > -1 ? process.argv[i + 1] : d; };
-const key = readKey(process.env.DEPLOYER_KEY);
+const key = await readKey(process.env.DEPLOYER_KEY);
 const account = privateKeyToAccount(key);
 const wallet = createWalletClient({ account, chain: robinhood, transport: transport() });
 const ROOT = resolve(import.meta.dirname, '..');

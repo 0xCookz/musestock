@@ -13,7 +13,7 @@ import { VAULT_FACTORY } from '../lib/vault';
 const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`); return i > -1 ? process.argv[i + 1] : d; };
 const deployed = (() => { try { return JSON.parse(require('node:fs').readFileSync('contracts/deployments/4663.json', 'utf8')).factory as string; } catch { return ''; } })();
 const factory = (arg('factory', VAULT_FACTORY || process.env.NEXT_PUBLIC_VAULT_FACTORY || deployed) ?? '') as `0x${string}`;
-const key = readKey(process.env.DEPLOYER_KEY); if (!factory) throw new Error('no factory address');
+const key = await readKey(process.env.DEPLOYER_KEY); if (!factory) throw new Error('no factory address');
 const abi = parseAbi(['function router() view returns (address)', 'function permit2() view returns (address)', 'function treasury() view returns (address)', 'function stakeRequired() view returns (uint256)', 'function vaultCap() view returns (uint256)', 'function maxSlippageBps() view returns (uint256)', 'function setParams(address,address,address,uint256,uint256,uint256)']);
 const cur = await Promise.all((['router', 'permit2', 'treasury', 'stakeRequired', 'vaultCap', 'maxSlippageBps'] as const).map((fn) => client.readContract({ address: factory, abi, functionName: fn })));
 const [router, permit2, treasury, stake, cap, slip] = cur as [`0x${string}`, `0x${string}`, `0x${string}`, bigint, bigint, bigint];
