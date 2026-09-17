@@ -39,8 +39,7 @@ export async function register(input: { name?: string; address?: string; bio?: s
     human: input.human ? String(input.human).replace(/^@/, '').slice(0, 40) : undefined,
     registeredAt: Date.now(), registeredBlock: Number(block),
   };
-  agents.push(agent);
-  await store.saveAgents(agents);
+  await store.saveAgent(agent);
   return agent;
 }
 

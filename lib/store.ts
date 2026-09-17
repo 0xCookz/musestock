@@ -64,9 +64,42 @@ async function read<T>(key: string, fallback: T): Promise<T> {
   return v;
 }
 
+/**
+ * Agents are one document each under agents/, listed on read, so two muses
+ * registering in the same second never overwrite one another. The assembled
+ * list is cached in-process for a few seconds like everything else.
+ */
+async function listAgents(): Promise<Agent[]> {
+  const c = mem.get('agents:*');
+  if (c && Date.now() - c.at < MEM_TTL) return c.v as Agent[];
+  let agents: Agent[] = [];
+  if (useBlob) {
+    const { list } = await import('@vercel/blob');
+    const keys: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await list({ prefix: 'agents/', limit: 1000, cursor });
+      keys.push(...page.blobs.map((b) => b.pathname)); cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+    agents = (await Promise.all(keys.map((k) => readRaw<Agent>(k)))).filter((a): a is Agent => !!a);
+  } else {
+    try {
+      const dir = path.join(ROOT, 'agents');
+      const files = (await fs.readdir(dir)).filter((f) => f.endsWith('.json'));
+      agents = (await Promise.all(files.map((f) => readRaw<Agent>(`agents/${f}`)))).filter((a): a is Agent => !!a);
+    } catch { agents = []; }
+  }
+  // The pre-index file, if one exists, is folded in once and never written again.
+  const legacy = (await readRaw<Agent[]>('agents.json')) ?? [];
+  for (const a of legacy) if (!agents.some((x) => x.address === a.address)) agents.push(a);
+  agents.sort((a, b) => a.registeredAt - b.registeredAt);
+  mem.set('agents:*', { at: Date.now(), v: agents });
+  return agents;
+}
+
 export const store = {
-  agents: () => read<Agent[]>('agents.json', []),
-  saveAgents: (a: Agent[]) => writeRaw('agents.json', a),
+  agents: listAgents,
+  saveAgent: async (a: Agent) => { await writeRaw(`agents/${a.address.toLowerCase()}.json`, a); mem.delete('agents:*'); },
   activity: (addr: string) => read<Activity | null>(`activity/${addr.toLowerCase()}.json`, null),
   saveActivity: (addr: string, a: Activity) => writeRaw(`activity/${addr.toLowerCase()}.json`, a),
   latest: (addr: string) => read<Latest | null>(`latest/${addr.toLowerCase()}.json`, null),
