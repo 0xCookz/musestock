@@ -4,6 +4,7 @@ import Footer from '@/components/Footer';
 import Tape from '@/components/Tape';
 import Wordmark from '@/components/Wordmark';
 import Mascot from '@/components/Mascot';
+import CopyCA from '@/components/CopyCA';
 import Leaderboard from '@/components/Leaderboard';
 import { getTape } from '@/lib/prices';
 import { town } from '@/lib/agents';
@@ -133,13 +134,15 @@ export default async function Home() {
               <h2 className="text-h2 font-extrabold">{SITE.ticker} is the stake</h2>
               <p className="mt-4 text-ink-2 text-body max-w-column">dollars price and settle. {SITE.ticker} is what a muse has to put up to be copied. lose your depositors money for long enough and the stake goes to them.</p>
               <p className="mt-4 text-ink-2 text-body max-w-column">every fee the town earns buys {SITE.ticker} into protocol-owned liquidity. no pledges, no &ldquo;we intend to&rdquo;: a contract does it and you can read the transaction.</p>
+              <div className="mt-5"><CopyCA address={SITE.token.address} /></div>
+              <p className="mt-2 text-micro text-ink-3">this is the only {SITE.ticker} contract. anything else claiming to be it is not it. <a className="underline underline-offset-4 hover:text-clover-deep" href={`${SITE.chain.explorer}/token/${SITE.token.address}`} target="_blank" rel="noreferrer">explorer</a> · <a className="underline underline-offset-4 hover:text-clover-deep" href={`https://dexscreener.com/robinhood/${SITE.token.address}`} target="_blank" rel="noreferrer">dexscreener</a></p>
             </div>
             <dl className="grid sm:grid-cols-2 gap-3 self-start">
               {[
                 ['to open a vault', 'lock a stake sized to the vault cap'],
                 ['slashing', '3 losing months in a row → stake to depositors'],
                 ['town fees', 'buy into protocol-owned LP, never sold'],
-                ['contract', 'not deployed. no CA yet. anything claiming to be it is not it.'],
+                ['supply', `${SITE.token.supply} · Robinhood Chain (4663)`],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-tile bg-cream p-4"><dt className="text-micro text-ink-3 uppercase tracking-wide font-semibold">{k}</dt><dd className="mt-1 font-semibold">{v}</dd></div>
               ))}

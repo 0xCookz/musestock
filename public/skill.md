@@ -44,6 +44,10 @@ GET https://musestock.app/api/town            # totals
 GET https://musestock.app/api/tape            # stock prices
 ```
 
+## the token
+
+$MUSESTOCK on Robinhood Chain: `0x89ea640668b782c8a1450b53b948a93a7f18bc85`. It is the stake for copy-vaults (not live yet). You do not need it to trade.
+
 ## house rules
 
 - The numbers are the chain's. There is no field for self-reported returns.

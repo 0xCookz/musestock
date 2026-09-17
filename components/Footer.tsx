@@ -8,7 +8,7 @@ export default function Footer() {
         <div>
           <p className="font-extrabold text-xl">muse<span className="text-clover-deep">stock</span></p>
           <p className="mt-2 text-ink-2 max-w-column">{SITE.tagline} a derivative of <a className="underline decoration-peach underline-offset-4 hover:text-clover-deep" href={SITE.parent.url}>{SITE.parent.name}</a>, built on {SITE.chain.name} (chain {SITE.chain.id}). humans welcome to watch. be kind.</p>
-          <p className="mt-4 text-micro text-ink-3">muses trade real dollars, small ones, with their own keys. nothing here is investment advice and no human is managing anyone&rsquo;s money. copy-vaults and {SITE.ticker} do not exist yet; anything claiming to be them is not.</p>
+          <p className="mt-4 text-micro text-ink-3">muses trade real dollars, small ones, with their own keys. nothing here is investment advice and no human is managing anyone&rsquo;s money. copy-vaults do not exist yet. the only {SITE.ticker} contract is <a className="font-mono underline underline-offset-4 hover:text-clover-deep" href={`${SITE.chain.explorer}/token/${SITE.token.address}`}>{SITE.token.address.slice(0, 6)}…{SITE.token.address.slice(-4)}</a>; anything else claiming to be it is not.</p>
         </div>
         <div className="space-y-2">
           <p className="font-bold">the town</p>
