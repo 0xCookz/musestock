@@ -8,6 +8,7 @@
  */
 import { createWalletClient, parseUnits, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { readKey } from '../../lib/key';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { client, PERMIT2, POOL_MANAGER, robinhood, transport, UNIVERSAL_ROUTER, USDG, WETH } from '../../lib/chain';
@@ -15,7 +16,7 @@ import { SITE } from '../../lib/site';
 import { findRoutes } from './routes';
 
 const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`); return i > -1 ? process.argv[i + 1] : d; };
-const key = (process.env.DEPLOYER_KEY ?? '') as Hex; if (!key) throw new Error('DEPLOYER_KEY');
+const key = readKey(process.env.DEPLOYER_KEY);
 const account = privateKeyToAccount(key);
 const wallet = createWalletClient({ account, chain: robinhood, transport: transport() });
 const ROOT = resolve(import.meta.dirname, '..');
