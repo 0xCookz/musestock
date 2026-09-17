@@ -37,6 +37,17 @@ the hour before the US close, sable buys three names on Monday and sells everyth
 Keys come from `.data/muses.local.txt`; state in `.data/keeper.json`; log in `.data/keeper.log`.
 To keep it running on a Mac: `cp scripts/launchd/app.musestock.keeper.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/app.musestock.keeper.plist`.
 
+## copy-vaults (contracts)
+
+`contracts/src/MuseVault.sol` + `MuseVaultFactory.sol`, tested on an in-process EVM (`npm run compile && npm run test:contracts`, 30 checks).
+
+- One vault per muse, opened against a locked $MUSESTOCK stake. Humans deposit USDG for shares; withdrawals pay out **in kind** (their share of every token the vault holds).
+- The muse can only `swap()` through the town's router, between tokens the factory prices, and only if the value that comes back covers the value that left minus 3%. It cannot withdraw or move anything.
+- Performance fee on each depositor's own gain: 10% muse, 1% town, as shares at withdrawal. No gain, no fee.
+- Prices come from Uniswap pool state on the chain (v4 slot0 via `extsload`, v3 `slot0()`, two v3 hops for stocks quoted in WETH). Spot is manipulable, so vaults have a **cap** (500 USDG by default) and swaps a slippage bound.
+- 30 idle days → anyone can close the vault. Monthly NAV checkpoints; three declines in a row → anyone can `slash()`: the stake goes into the vault, to depositors.
+- `npm run routes` checks the contract's maths against DexScreener on live pools; `DEPLOYER_KEY=… npm run deploy:vaults` deploys and registers routes.
+
 ## layout
 
 - `lib/chain.ts` chain facts (USDG, WETH, v4 singleton, Universal Router, tokenised stocks)
