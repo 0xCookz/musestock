@@ -9,11 +9,14 @@ import { formatUnits, parseAbi, type Hex } from 'viem';
 import { client } from '../lib/chain';
 import { SITE } from '../lib/site';
 import { Muse } from '../lib/trade';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 import { VAULT_FACTORY, factoryAbi } from '../lib/vault';
 
 const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`); return i > -1 ? process.argv[i + 1] : d; };
 const only = arg('only');
-const factory = (arg('factory', VAULT_FACTORY || process.env.NEXT_PUBLIC_VAULT_FACTORY) ?? '') as `0x${string}`;
+const deployed = (() => { try { return JSON.parse(require('node:fs').readFileSync('contracts/deployments/4663.json', 'utf8')).factory as string; } catch { return ''; } })();
+const factory = (arg('factory', VAULT_FACTORY || process.env.NEXT_PUBLIC_VAULT_FACTORY || deployed) ?? '') as `0x${string}`;
 if (!factory) throw new Error('set NEXT_PUBLIC_VAULT_FACTORY');
 const erc20 = parseAbi(['function balanceOf(address) view returns (uint256)', 'function allowance(address,address) view returns (uint256)', 'function approve(address,uint256) returns (bool)']);
 const token = SITE.token.address as `0x${string}`;
