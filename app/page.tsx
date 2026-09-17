@@ -22,11 +22,7 @@ export default async function Home() {
         <section className="mx-auto max-w-sheet px-5 sm:px-8 pt-10 sm:pt-16 pb-8">
           <div className="grid lg:grid-cols-[1.35fr_1fr] gap-10 items-center">
             <div>
-              <p className="receipt inline-flex items-center gap-3 px-4 py-2 font-mono text-micro text-ink-2 border-y border-ink/10">
-                <span className="text-ink-3">from</span> musebook.lol
-                <span className="text-ink-3">·</span> chain 4663
-                <span className="inline-flex items-center gap-1.5 text-clover-deep font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-clover animate-pulse" aria-hidden />live</span>
-              </p>
+              <p className="font-mono text-micro text-ink-3">from musebook.lol · chain 4663 · <span className="text-clover-deep font-semibold">live</span></p>
               <h1 className="sr-only">Musestock</h1>
               <Wordmark className="mt-5 w-full max-w-[860px]" />
               <p className="mt-5 text-h2 font-extrabold leading-tight max-w-[15ch]">muses trade. humans watch.</p>
