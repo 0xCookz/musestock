@@ -77,8 +77,8 @@ export class Muse {
     }
   }
 
-  /** One exact-input hop. Returns what arrived. */
-  async swapOnce(from: Address, to: Address, amount: bigint, slippagePct = 1): Promise<SwapResult> {
+  /** Router calldata for one exact-input hop, paid by and delivered to `payer` (default: this wallet). */
+  async buildSwap(from: Address, to: Address, amount: bigint, slippagePct = 1, payer: Address = this.address): Promise<{ data: Hex; minOut: bigint; label: string }> {
     const [{ dec: dIn, sym: sIn }, { dec: dOut, sym: sOut }] = await Promise.all([meta(from), meta(to)]);
     const [c0, c1] = [lower(from), lower(to)].sort() as [Address, Address];
     let pool: Pair | undefined; let key: { fee: number; tickSpacing: number } | null = null;
@@ -89,8 +89,7 @@ export class Muse {
     const sellingBase = lower(from) === lower(pool.baseToken.address);
     const expectedOut = sellingBase ? Number(formatUnits(amount, dIn)) * Number(pool.priceNative) : Number(formatUnits(amount, dIn)) / Number(pool.priceNative);
     const minOut = parseUnits((expectedOut * (1 - slippagePct / 100)).toFixed(dOut), dOut);
-    if (!isNative(from)) await this.ensureApprovals(from, amount);
-    let commands: Hex; let input: Hex;
+    let commands: Hex; let input: Hex; let label: string;
     if (pool.labels?.includes('v4')) {
       if (!key) throw new Error('unreachable: v4 pool without key');
       const swapParams = encodeAbiParameters(
@@ -100,16 +99,25 @@ export class Muse {
       const take = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }], [to, minOut]);
       const actions = encodePacked(['uint8', 'uint8', 'uint8'], [0x06, 0x0b, 0x0f]);
       commands = '0x10'; input = encodeAbiParameters([{ type: 'bytes' }, { type: 'bytes[]' }], [actions, [swapParams, settle, take]]);
-      this.log(`v4: ${formatUnits(amount, dIn)} ${sIn} → ≥ ${formatUnits(minOut, dOut)} ${sOut} (fee ${key.fee / 1e4}%)`);
+      label = `v4: ${formatUnits(amount, dIn)} ${sIn} → ≥ ${formatUnits(minOut, dOut)} ${sOut} (fee ${key.fee / 1e4}%)`;
     } else {
       const fee = await client.readContract({ address: pool.pairAddress as Address, abi: parseAbi(['function fee() view returns (uint24)']), functionName: 'fee' });
       const path = encodePacked(['address', 'uint24', 'address'], [from, Number(fee), to]);
       commands = '0x00';
-      input = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }, { type: 'uint256' }, { type: 'bytes' }, { type: 'bool' }, { type: 'uint256[]' }], [this.address, amount, minOut, path, true, []]);
-      this.log(`v3: ${formatUnits(amount, dIn)} ${sIn} → ≥ ${formatUnits(minOut, dOut)} ${sOut} (fee ${Number(fee) / 1e4}%)`);
+      input = encodeAbiParameters([{ type: 'address' }, { type: 'uint256' }, { type: 'uint256' }, { type: 'bytes' }, { type: 'bool' }, { type: 'uint256[]' }], [payer, amount, minOut, path, true, []]);
+      label = `v3: ${formatUnits(amount, dIn)} ${sIn} → ≥ ${formatUnits(minOut, dOut)} ${sOut} (fee ${Number(fee) / 1e4}%)`;
     }
-    const before = await balanceOf(this.address, to);
     const data = encodeFunctionData({ abi: routerAbi, functionName: 'execute', args: [commands, [input], BigInt(Math.floor(Date.now() / 1000) + 600)] });
+    return { data, minOut, label };
+  }
+
+  /** One exact-input hop from this wallet. Returns what arrived. */
+  async swapOnce(from: Address, to: Address, amount: bigint, slippagePct = 1): Promise<SwapResult> {
+    const { dec: dOut, sym: sOut } = await meta(to);
+    if (!isNative(from)) await this.ensureApprovals(from, amount);
+    const { data, label } = await this.buildSwap(from, to, amount, slippagePct);
+    this.log(label);
+    const before = await balanceOf(this.address, to);
     const hash = await this.wallet.sendTransaction({ to: UNIVERSAL_ROUTER, data, chain: robinhood, value: isNative(from) ? amount : 0n });
     const rc = await client.waitForTransactionReceipt({ hash });
     const got = (await balanceOf(this.address, to)) - before;

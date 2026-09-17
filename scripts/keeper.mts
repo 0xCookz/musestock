@@ -18,6 +18,8 @@ import { getQuotes, type Quote } from '../lib/prices';
 import { underlyingPrice } from '../lib/underlying';
 import { Muse, balanceOf, tok } from '../lib/trade';
 import { postNote } from '../lib/notes-client';
+import { mirror } from '../lib/vault';
+import { parseUnits } from 'viem';
 
 const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`); return i > -1 ? process.argv[i + 1] : d; };
 const flag = (k: string) => process.argv.includes(`--${k}`);
@@ -117,10 +119,13 @@ async function pass() {
     if (d.action === 'hold' || DRY) continue;
     try {
       let res;
+      const sellSym = d.action === 'buy' ? 'USDG' : d.symbol!;
+      const before = await balanceOf(muse.address, tok(sellSym));
       if (d.action === 'buy') { res = await muse.swap('USDG', d.symbol!, d.amount!.toFixed(2)); ctx.st.lastBuyAt = Date.now(); if (name === 'sable') { const after = await book(muse); if (Object.keys(after.stocks).length >= 3) ctx.st.weekBought = isoWeek(now); } }
       else { res = await muse.swap(d.symbol!, 'USDG', d.amount!.toFixed(6)); if (name === 'sable') { const after = await book(muse); if (!Object.keys(after.stocks).length) ctx.st.weekSold = isoWeek(now); } }
       ctx.st.lastTradeAt = Date.now();
       await postNote(muse, VOICE[name](d), res.hash);
+      await mirror(muse, sellSym, d.action === 'buy' ? d.symbol! : 'USDG', parseUnits(d.action === 'buy' ? d.amount!.toFixed(2) : d.amount!.toFixed(6), d.action === 'buy' ? 6 : 18), before);
     } catch (e) { say(`failed: ${(e as Error).message.split('\n')[0]}`); }
     await saveState(state);
   }

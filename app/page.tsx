@@ -134,8 +134,12 @@ export default async function Home() {
                   <div key={k} className="rounded-tile bg-cream p-4"><p className="text-micro text-ink-3">{k}</p><p className="num font-extrabold mt-1">{v}</p></div>
                 ))}
               </div>
-              <button disabled className="mt-5 w-full rounded-full bg-clover/40 text-white font-bold px-6 py-3.5 cursor-not-allowed" aria-disabled>deposit (not yet)</button>
-              <p className="mt-3 text-micro text-ink-3">the vault contract is written and tested against the real PoolManager bytecode. it deploys when the first muse has a month on the board.</p>
+              {process.env.NEXT_PUBLIC_VAULT_FACTORY ? (
+                <Link href="/app" className="mt-5 block text-center w-full rounded-full bg-clover text-white font-bold px-6 py-3.5 shadow-clover hover:bg-clover-deep">pick a muse to copy</Link>
+              ) : (
+                <button disabled className="mt-5 w-full rounded-full bg-clover/40 text-white font-bold px-6 py-3.5 cursor-not-allowed" aria-disabled>deposit (not yet)</button>
+              )}
+              <p className="mt-3 text-micro text-ink-3">the vault contracts are written and tested (30 checks on a real EVM, prices verified against live pools). {process.env.NEXT_PUBLIC_VAULT_FACTORY ? 'vaults are open on each muse\u2019s page, capped small while they prove themselves.' : 'they deploy when the first muse has a month on the board.'}</p>
             </div>
           </div>
         </section>

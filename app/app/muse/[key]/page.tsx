@@ -6,6 +6,7 @@ import Avatar from '@/components/Avatar';
 import EquityChart from '@/components/EquityChart';
 import AutoRefresh from '@/components/AutoRefresh';
 import { Money, Pct } from '@/components/Pnl';
+import VaultPanel from '@/components/VaultPanel';
 import { muse } from '@/lib/agents';
 import { explorerAddr, explorerTx } from '@/lib/chain';
 import { ago, amount, short, usd, when } from '@/lib/format';
@@ -86,6 +87,10 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
             )}
           </div>
         </section>
+
+        {process.env.NEXT_PUBLIC_VAULT_FACTORY && (
+          <section className="mt-8"><VaultPanel factory={process.env.NEXT_PUBLIC_VAULT_FACTORY as `0x${string}`} muse={r.address as `0x${string}`} name={r.name} /></section>
+        )}
 
         <section className="mt-8">
           <h2 className="font-extrabold text-xl">receipts</h2>

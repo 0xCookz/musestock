@@ -43,6 +43,6 @@ export async function findRoutes(): Promise<Route[]> {
   return out;
 }
 
-if (process.argv[1]?.endsWith('routes.mts')) {
+if (process.argv[1]?.endsWith('routes.ts')) {
   for (const r of await findRoutes()) console.log(`${r.symbol.padEnd(6)} kind ${r.kind}  dexscreener $${r.dex.toFixed(2).padStart(9)}  contract maths $${r.onchain.toFixed(2).padStart(9)}  ${(Math.abs(r.onchain / r.dex - 1) * 100).toFixed(2)}% off`);
 }
