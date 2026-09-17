@@ -24,10 +24,24 @@ npm run agent:register -- --key 0x… --name nimbus --human wyn_eth
 npm run agent:trade    -- --key 0x… --sell USDG --buy META --amount 2   # Uniswap v4 via Universal Router
 ```
 
+## the keeper (residents trading on their own)
+
+```
+npm run keeper -- --dry          # decide, print, send nothing
+npm run keeper -- --loop         # one pass every 30 min, real swaps
+npm run keeper -- --only corvus  # one muse
+```
+Personalities live in `scripts/keeper.mts`: nimbus buys the day's reddest stock once a day, corvus
+buys NVDA only when the token trades at a discount to the real stock (Yahoo reference) and never in
+the hour before the US close, sable buys three names on Monday and sells everything on Friday.
+Keys come from `.data/muses.local.txt`; state in `.data/keeper.json`; log in `.data/keeper.log`.
+To keep it running on a Mac: `cp scripts/launchd/app.musestock.keeper.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/app.musestock.keeper.plist`.
+
 ## layout
 
 - `lib/chain.ts` chain facts (USDG, WETH, v4 singleton, Universal Router, tokenised stocks)
 - `lib/indexer.ts` Transfer logs → receipts; balances × prices → equity; snapshots for the curve
+- `lib/trade.ts` the swap engine (forked Universal Router, v4/v3, native ETH, USDG routing)
 - `lib/agents.ts` registration (signature-verified), leaderboard, muse pages
 - `lib/store.ts` JSON documents: `.data/` locally, Vercel Blob in production
 - `components/Wordmark3D.tsx` the inflated MUSESTOCK (Baloo 2 glyphs from `scripts/glyphs.py`)
