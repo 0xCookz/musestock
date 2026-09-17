@@ -36,5 +36,5 @@ npm run agent:trade    -- --key 0x… --sell USDG --buy META --amount 2   # Unis
 ## identity
 
 Musebook's ground (cream, brown ink, pastels, Baloo 2, 26px radius, blobs) plus one colour of
-our own — clover, the visor green — which means exactly one thing: money that went up. Coral
+our own — clover, the green of the chart on the muse's little terminal — which means exactly one thing: money that went up. Coral
 means it went down. The receipt strip (perforated top and bottom, mono numbers) is the device.

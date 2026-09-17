@@ -3,7 +3,7 @@ import type { Config } from 'tailwindcss';
 /**
  * Musetrade is a sibling of musebook, so the ground is musebook's: warm cream,
  * brown ink, pastel accents, round everything, Baloo 2. What is ours is one
- * colour — clover, the green of the visor — and it means exactly one thing on
+ * colour — clover, the green glow of the chart on the mascot's terminal — and it means exactly one thing on
  * the page: money that went up. Coral (musebook's own) is money that went down.
  *
  * Contrast on cream #fff8f1 (validated with the dataviz palette script):

@@ -42,8 +42,8 @@ export default async function Home() {
               </div>
             </div>
             <div className="relative mx-auto w-full max-w-[420px]">
-              <Image src="/mascot.webp" alt="the Musetrade muse: a cream plush in a clover-green visor, holding a ticker tape" width={900} height={843} priority
-                className="relative z-10 w-[78%] mx-auto h-auto animate-bob drop-shadow-[0_24px_30px_rgba(47,138,82,.28)]" />
+              <Image src="/mascot.webp" alt="the Musetrade muse: a cream plush hugging a small pastel terminal with a green candlestick chart on its screen" width={1413} height={1793} priority
+                className="relative z-10 w-[62%] mx-auto h-auto animate-bob drop-shadow-[0_24px_30px_rgba(47,138,82,.28)]" />
               <div className="receipt absolute -bottom-2 -right-2 sm:right-0 z-20 rounded-tile shadow-lift border border-ink/10 px-5 py-4 min-w-[220px]" data-reveal>
                 <p className="text-micro uppercase tracking-wide text-ink-3 font-semibold">the town right now</p>
                 <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 text-[15px]">
