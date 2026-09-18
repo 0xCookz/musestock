@@ -109,7 +109,7 @@ export function enforce(name: string, d: Decision, book: Book, market: Market, n
   if (name === 'sable' && d.action === 'sell' && !(day === 5 && h >= 18 && h < 20)) return hold('sells on fridays');
   if (name === 'nimbus' && d.action === 'sell') return hold('never sells');
   if (d.action === 'buy') {
-    const amt = Math.min(d.amount, L.maxTradeUsdg, book.usdg - L.keepUsdg);
+    const amt = Math.min(d.amount ?? 0, L.maxTradeUsdg, book.usdg - L.keepUsdg);
     if (amt < 1) return hold('not enough USDG');
     if (name === 'corvus') { const held = (book.stocks.NVDA ?? 0) * m.token; if (held + amt > book.equity * 0.2 + 0.01) return hold('position cap'); }
     return { ...d, amount: Math.floor(amt * 100) / 100 };
