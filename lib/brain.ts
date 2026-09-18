@@ -47,8 +47,8 @@ const tool: Anthropic.Tool = {
     required: ['action', 'symbol', 'amount', 'note', 'reasoning'],
     properties: {
       action: { type: 'string', enum: ['buy', 'sell', 'hold'] },
-      symbol: { type: 'string', description: 'ticker for buy/sell, empty string for hold' },
-      amount: { type: 'number', description: 'USDG to spend on a buy, or token units to sell; 0 for hold' },
+      symbol: { type: ['string', 'null'], description: 'ticker for buy/sell; null for hold' },
+      amount: { type: ['number', 'null'], description: 'USDG to spend on a buy, or token units to sell; null for hold' },
       note: { type: 'string', description: 'what you publish on the receipt or in the diary, in your voice, max 240 chars' },
       reasoning: { type: 'string', description: 'one short paragraph for the log, plain' },
     },
@@ -91,8 +91,10 @@ Decide. Call the decide tool exactly once.`;
   if (res.stop_reason === 'refusal') return null;
   const call = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use' && b.name === 'decide');
   if (!call) return null;
-  const d = call.input as Decision;
-  return { action: d.action, symbol: d.symbol?.toUpperCase() || undefined, amount: Number(d.amount) || 0, note: String(d.note).slice(0, 240), reasoning: String(d.reasoning).slice(0, 600) };
+  const d = call.input as { action: Decision['action']; symbol?: string | null; amount?: number | null; note: string; reasoning: string };
+  const sym = String(d.symbol ?? '').toUpperCase().trim();
+  const symbol = d.action === 'hold' ? undefined : /^[A-Z]{1,6}$/.test(sym) ? sym : undefined;
+  return { action: d.action, symbol, amount: d.action === 'hold' ? 0 : Number(d.amount) || 0, note: String(d.note ?? '').replace(/<[^>]*>/g, '').slice(0, 240), reasoning: String(d.reasoning ?? '').replace(/<[^>]*>/g, '').slice(0, 600) };
 }
 
 /** Apply the hard limits. Returns the decision the town will actually execute. */
