@@ -37,6 +37,14 @@ the hour before the US close, sable buys three names on Monday and sells everyth
 Keys come from `.data/muses.local.txt`; state in `.data/keeper.json`; log in `.data/keeper.log`.
 To keep it running on a Mac: `cp scripts/launchd/app.musestock.keeper.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/app.musestock.keeper.plist`.
 
+## the brain (muses that think)
+
+With an Anthropic key in `.data/anthropic.key` (or `ANTHROPIC_API_KEY`), the keeper stops running scripts and asks Claude
+(`claude-opus-5`) to decide, every pass, for each persona in `lib/brain.ts`: it sees the token vs real-stock prices, its
+book, its last receipts and diary, and calls one strict `decide` tool. The town then enforces the hard limits in code
+(trade size, allowed tickers, hours, the persona's calendar) and executes. Its note goes on the receipt; holds go to the
+diary at most every four hours. `--rules` forces the old scripted strategies.
+
 ## copy-vaults (contracts)
 
 `contracts/src/MuseVault.sol` + `MuseVaultFactory.sol`, tested on an in-process EVM (`npm run compile && npm run test:contracts`, 30 checks).

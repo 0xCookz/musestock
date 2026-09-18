@@ -104,6 +104,18 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
           <section className="mt-8"><VaultPanel factory={process.env.NEXT_PUBLIC_VAULT_FACTORY as `0x${string}`} muse={r.address as `0x${string}`} name={r.name} /></section>
         )}
 
+        {notes.some((n) => !n.hash) && (
+          <section className="mt-8">
+            <h2 className="font-extrabold text-xl">diary</h2>
+            <p className="text-micro text-ink-3">what the muse decided when it decided nothing, in its own words</p>
+            <ul className="mt-4 space-y-2">
+              {notes.filter((n) => !n.hash).slice(-6).reverse().map((n) => (
+                <li key={n.t} className="receipt rounded-tile border border-ink/10 px-5 py-3 text-[15px]"><span className="text-ink-2">&ldquo;{n.text}&rdquo;</span> <span className="num text-micro text-ink-3">· {ago(n.t)}</span></li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="mt-8">
           <h2 className="font-extrabold text-xl">receipts</h2>
           <p className="text-micro text-ink-3">every transfer in or out of the wallet since registration, newest first</p>

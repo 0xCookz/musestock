@@ -19,11 +19,15 @@ import { underlyingPrice } from '../lib/underlying';
 import { Muse, balanceOf, tok } from '../lib/trade';
 import { postNote } from '../lib/notes-client';
 import { mirror } from '../lib/vault';
+import { enforce, hasBrain, think, type Market } from '../lib/brain';
+import { underlyingPrice as refPrice } from '../lib/underlying';
 import { parseUnits } from 'viem';
 
 const arg = (k: string, d?: string) => { const i = process.argv.indexOf(`--${k}`); return i > -1 ? process.argv[i + 1] : d; };
 const flag = (k: string) => process.argv.includes(`--${k}`);
-const DRY = flag('dry'); const ONLY = arg('only');
+const DRY = flag('dry'); const ONLY = arg('only'); const RULES = flag('rules');
+const SITE = process.env.SITE ?? 'https://musestock.app';
+const diaryAt: Record<string, number> = {};
 const ROOT = path.join(process.cwd(), '.data');
 const STATE = path.join(ROOT, 'keeper.json');
 const LOG = path.join(ROOT, 'keeper.log');
@@ -114,9 +118,35 @@ async function pass() {
     const say = (s: string) => { const l = `${now.toISOString()} ${name}: ${s}`; console.log(l); lines.push(l); };
     const muse = new Muse(key, say);
     const ctx: Ctx = { muse, name, book: await book(muse), quotes, st: (state[name] ??= {}), now, say };
-    const d = await strategy(ctx);
+    let d: Decision = await strategy(ctx);
+    let reasoning = '';
+    let diary = '';
+    if (!RULES && (await hasBrain())) {
+      try {
+        const [profile, refs] = await Promise.all([
+          fetch(`${SITE}/api/agents/${name}`).then((r) => r.json()).catch(() => null),
+          Promise.all(STOCKS.map(async (st) => [st.symbol, (await refPrice(st.symbol))?.price] as const)),
+        ]);
+        const ref = Object.fromEntries(refs);
+        const market: Market = STOCKS.map((st) => { const qq = q(ctx, st.symbol); return { symbol: st.symbol, token: qq?.usd ?? 0, stock: ref[st.symbol], change24h: qq?.change24h ?? 0, liquidity: qq?.liquidity ?? 0, tradable: !!qq && qq.liquidity > 20_000 }; });
+        const eq = equity(ctx); const deposits = profile?.row?.latest?.deposits ?? 0;
+        const memory = {
+          receipts: (profile?.trades ?? []).filter((t: { kind: string }) => t.kind === 'swap').slice(0, 6).map((t: { t: number; sold: { amount: number; symbol: string }[]; bought: { amount: number; symbol: string }[] }) => `${new Date(t.t).toISOString().slice(0, 16)} sold ${t.sold.map((x) => `${x.amount.toFixed(4)} ${x.symbol}`).join('+')} → bought ${t.bought.map((x) => `${x.amount.toFixed(4)} ${x.symbol}`).join('+')}`),
+          notes: (profile?.notes ?? []).slice(-4).map((n: { text: string }) => n.text),
+          lastDecisions: (profile?.notes ?? []).filter((n: { hash?: string }) => !n.hash).slice(-4).map((n: { text: string }) => n.text),
+        };
+        const thought = await think(name, market, { usdg: ctx.book.usdg, stocks: ctx.book.stocks, equity: eq, pnl: eq - deposits, deposits }, memory, now);
+        if (thought) { const e = enforce(name, thought, { usdg: ctx.book.usdg, stocks: ctx.book.stocks, equity: eq, pnl: eq - deposits, deposits }, market, now); d = { action: e.action, symbol: e.symbol, amount: e.amount, why: e.reasoning }; reasoning = e.reasoning; diary = e.note; }
+        else say('brain: no decision, using the rules');
+      } catch (e) { say(`brain failed: ${(e as Error).message.split('\n')[0]}; using the rules`); }
+    }
     say(`${d.action}${d.symbol ? ` ${d.symbol}` : ''}${d.amount ? ` ${d.amount.toFixed(4)}` : ''} — ${d.why} · book ${ctx.book.usdg.toFixed(2)} USDG ${Object.entries(ctx.book.stocks).map(([s, a]) => `${a.toFixed(4)} ${s}`).join(' ') || ''}`);
-    if (d.action === 'hold' || DRY) continue;
+    if (d.action === 'hold') {
+      // a diary line for a hold, at most every four hours, so the page shows the muse thinking
+      if (diary && !DRY && now.getTime() - (diaryAt[name] ?? 0) > 4 * 3600_000) { await postNote(muse, diary); diaryAt[name] = now.getTime(); }
+      continue;
+    }
+    if (DRY) continue;
     try {
       let res;
       const sellSym = d.action === 'buy' ? 'USDG' : d.symbol!;
@@ -124,7 +154,8 @@ async function pass() {
       if (d.action === 'buy') { res = await muse.swap('USDG', d.symbol!, d.amount!.toFixed(2)); ctx.st.lastBuyAt = Date.now(); if (name === 'sable') { const after = await book(muse); if (Object.keys(after.stocks).length >= 3) ctx.st.weekBought = isoWeek(now); } }
       else { res = await muse.swap(d.symbol!, 'USDG', d.amount!.toFixed(6)); if (name === 'sable') { const after = await book(muse); if (!Object.keys(after.stocks).length) ctx.st.weekSold = isoWeek(now); } }
       ctx.st.lastTradeAt = Date.now();
-      await postNote(muse, VOICE[name](d), res.hash);
+      await postNote(muse, diary || VOICE[name](d), res.hash);
+      if (reasoning) say(`reasoning: ${reasoning}`);
       await mirror(muse, sellSym, d.action === 'buy' ? d.symbol! : 'USDG', parseUnits(d.action === 'buy' ? d.amount!.toFixed(2) : d.amount!.toFixed(6), d.action === 'buy' ? 6 : 18), before);
     } catch (e) { say(`failed: ${(e as Error).message.split('\n')[0]}`); }
     await saveState(state);
