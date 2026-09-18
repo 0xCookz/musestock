@@ -3,9 +3,11 @@ import { client, lower } from './chain';
 import { refreshAgent } from './indexer';
 import { store, type Agent, type Latest, type Note, type Snapshot, type Trade } from './store';
 import { SITE } from './site';
+import { standing, type Standing } from './badges';
+import { vaultOf } from './vault';
 
 export type Row = Agent & {
-  latest: Latest | null; pnl: number; ret: number; change24h: number; spark: number[]; rank: number;
+  latest: Latest | null; pnl: number; ret: number; change24h: number; spark: number[]; rank: number; standing: Standing;
 };
 
 const STALE = 5 * 60_000;
@@ -53,22 +55,30 @@ function change24h(snaps: Snapshot[], latest: Latest | null) {
   return ((latest.equity - flows) / base.equity - 1) * 100;
 }
 
-async function row(a: Agent, refreshIfStale: boolean): Promise<Row> {
+const vaultCache = new Map<string, { at: number; v: boolean }>();
+async function hasVault(address: string) {
+  const c = vaultCache.get(address); if (c && Date.now() - c.at < 10 * 60_000) return c.v;
+  const v = !!(await vaultOf(address as Address).catch(() => null)); vaultCache.set(address, { at: Date.now(), v }); return v;
+}
+
+async function row(a: Agent, refreshIfStale: boolean, residentIndex = 0): Promise<Row> {
   let latest = await store.latest(a.address);
   if (refreshIfStale && (!latest || Date.now() - latest.at > STALE)) {
     try { latest = await refreshAgent(a); } catch (e) { console.error('row refresh', a.name, e); }
   }
-  const snaps = await store.snapshots(a.address);
+  const [snaps, activity, notes, vault] = await Promise.all([store.snapshots(a.address), store.activity(a.address), store.notes(a.address), hasVault(a.address)]);
+  const st = standing({ agent: a, activity, snapshots: snaps, notes, residentIndex, hasVault: vault });
   const net = latest ? latest.deposits - latest.withdrawals : 0;
   const pnl = latest ? latest.equity - net : 0;
   const ret = net > 0 ? (pnl / net) * 100 : 0;
   const spark = snaps.slice(-48).map((s) => s.equity);
-  return { ...a, latest, pnl, ret, change24h: change24h(snaps, latest), spark, rank: 0 };
+  return { ...a, latest, pnl, ret, change24h: change24h(snaps, latest), spark, rank: 0, standing: st };
 }
 
 export async function leaderboard(opts: { refresh?: boolean } = {}): Promise<Row[]> {
   const agents = await store.agents();
-  const rows = await Promise.all(agents.map((a) => row(a, opts.refresh ?? true)));
+  const order = agents.slice().sort((x, y) => x.registeredAt - y.registeredAt);
+  const rows = await Promise.all(agents.map((a) => row(a, opts.refresh ?? true, order.indexOf(a))));
   rows.sort((x, y) => (y.ret - x.ret) || (y.pnl - x.pnl) || (x.registeredAt - y.registeredAt));
   rows.forEach((r, i) => (r.rank = i + 1));
   return rows;
@@ -79,7 +89,7 @@ export async function muse(addressOrName: string, opts: { refresh?: boolean } = 
   const key = addressOrName.toLowerCase();
   const a = agents.find((x) => lower(x.address) === key || x.name.toLowerCase() === key || x.id === addressOrName);
   if (!a) return null;
-  const r = await row(a, opts.refresh ?? true);
+  const r = await row(a, opts.refresh ?? true, agents.slice().sort((x, y) => x.registeredAt - y.registeredAt).indexOf(a));
   const [activity, snapshots, notes] = await Promise.all([store.activity(a.address), store.snapshots(a.address), store.notes(a.address)]);
   const all = await leaderboard({ refresh: false });
   r.rank = all.find((x) => x.address === a.address)?.rank ?? 0;

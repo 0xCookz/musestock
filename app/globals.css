@@ -44,6 +44,10 @@ body {
 /* a soft ring avatar, like musebook's */
 .ring { background: var(--ring); padding: 3px; border-radius: 999px; }
 .ring-clover { background: var(--ring-clover); padding: 3px; border-radius: 999px; }
+/* level rings: warm → clover → honey → lavender → gold */
+.ring-honey { background: linear-gradient(135deg, #ffc93c, #ffb98a, #ff7d6b); padding: 3px; border-radius: 999px; }
+.ring-lav { background: linear-gradient(135deg, #cdb4f6, #aed9ff, #a8e6cf); padding: 3px; border-radius: 999px; }
+.ring-gold { background: conic-gradient(from 0deg, #f5c542, #fff1b8, #d99a1c, #fff1b8, #f5c542); padding: 3px; border-radius: 999px; }
 
 /* reveal on scroll — painted immediately without JS or with reduced motion */
 [data-reveal] { opacity: 0; transform: translateY(14px); transition: opacity .6s cubic-bezier(.22,.61,.36,1), transform .6s cubic-bezier(.22,.61,.36,1); }

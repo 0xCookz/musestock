@@ -49,7 +49,11 @@ export default async function Image({ params }: { params: Promise<{ key: string 
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', marginTop: 30, fontSize: 20, color: '#7d6858' }}>{r?.address ?? ''}</div>
+          <div style={{ display: 'flex', marginTop: 26, fontSize: 22, color: '#6b5646', gap: 10, flexWrap: 'wrap' }}>
+            {r && <span style={{ display: 'flex', background: '#e2f3e8', color: '#236b3f', borderRadius: 999, padding: '4px 14px', fontWeight: 800 }}>level {r.standing.level} · {r.standing.xp} xp</span>}
+            {r?.standing.badges.filter((b) => b.earned).slice(0, 5).map((b) => <span key={b.id} style={{ display: 'flex', background: '#fff8f1', borderRadius: 999, padding: '4px 14px' }}>{b.name}</span>)}
+          </div>
+          <div style={{ display: 'flex', marginTop: 16, fontSize: 18, color: '#7d6858' }}>{r?.address ?? ''}</div>
         </div>
       </div>
     ),

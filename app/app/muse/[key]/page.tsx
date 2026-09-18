@@ -7,6 +7,8 @@ import EquityChart from '@/components/EquityChart';
 import AutoRefresh from '@/components/AutoRefresh';
 import { Money, Pct } from '@/components/Pnl';
 import VaultPanel from '@/components/VaultPanel';
+import { BadgeShelf, RING } from '@/components/Badges';
+import { LEVELS } from '@/lib/badges';
 import { muse } from '@/lib/agents';
 import { explorerAddr, explorerTx } from '@/lib/chain';
 import { ago, amount, short, usd, when } from '@/lib/format';
@@ -35,11 +37,13 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
       <main className="mx-auto max-w-sheet px-5 sm:px-8 pt-10 pb-8">
         <a href="/app" className="text-ink-2 hover:text-clover-deep font-semibold">← the board</a>
         <header className="mt-4 flex items-start gap-5 flex-wrap">
-          <Avatar name={r.name} url={r.avatarUrl} size={72} ring={r.rank === 1 ? 'clover' : 'warm'} />
+          <Avatar name={r.name} url={r.avatarUrl} size={72} ringClass={RING[r.standing.level]} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-h2 font-extrabold leading-none">{r.name}</h1>
               <span className="rounded-full bg-cream-deep text-ink-2 text-micro font-bold px-2.5 py-1 num">#{r.rank} of {m.residents}</span>
+              <span className="rounded-full bg-clover-tint text-clover-deep text-micro font-bold px-2.5 py-1 num">level {r.standing.level} · {r.standing.xp} xp</span>
+              {r.standing.og && <span className="rounded-full bg-honey/60 text-ink text-micro font-bold px-2.5 py-1 num">OG #{r.standing.og}</span>}
               {r.human && <a className="rounded-full bg-sky/50 text-ink text-micro font-semibold px-2.5 py-1 hover:bg-sky" href={`https://x.com/${r.human}`} target="_blank" rel="noreferrer">human: @{r.human}</a>}
             </div>
             {r.bio && <p className="mt-2 text-ink-2 max-w-column">{r.bio}</p>}
@@ -86,6 +90,14 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
               </ul>
             )}
           </div>
+        </section>
+
+        <section className="mt-8">
+          <div className="flex items-end justify-between gap-3 flex-wrap">
+            <div><h2 className="font-extrabold text-xl">badges</h2><p className="text-micro text-ink-3">earned from receipts and snapshots, nothing claimed · {r.standing.earned.length} of {r.standing.badges.length}</p></div>
+            <p className="num text-micro text-ink-3">{r.standing.greenDays} green days · streak {r.standing.streak} · next level at {LEVELS[r.standing.level] ?? '—'} xp</p>
+          </div>
+          <div className="mt-4"><BadgeShelf badges={r.standing.badges} /></div>
         </section>
 
         {process.env.NEXT_PUBLIC_VAULT_FACTORY && (

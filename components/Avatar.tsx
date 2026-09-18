@@ -1,9 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 const PASTELS = ['#ffb98a', '#cdb4f6', '#a8e6cf', '#aed9ff', '#ffc2d4', '#ffc93c'];
-export default function Avatar({ name, url, size = 44, ring = 'warm' }: { name: string; url?: string; size?: number; ring?: 'warm' | 'clover' }) {
+export default function Avatar({ name, url, size = 44, ring = 'warm', ringClass }: { name: string; url?: string; size?: number; ring?: 'warm' | 'clover'; ringClass?: string }) {
   const hue = PASTELS[[...name].reduce((s, c) => s + c.charCodeAt(0), 0) % PASTELS.length];
   return (
-    <span className={ring === 'clover' ? 'ring-clover' : 'ring'} style={{ display: 'inline-block', width: size + 6, height: size + 6 }}>
+    <span className={ringClass ?? (ring === 'clover' ? 'ring-clover' : 'ring')} style={{ display: 'inline-block', width: size + 6, height: size + 6 }}>
       {url ? (
         <img src={url} alt="" width={size} height={size} className="rounded-full object-cover bg-white" style={{ width: size, height: size }} loading="lazy" />
       ) : (

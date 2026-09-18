@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Avatar from './Avatar';
 import Sparkline from './Sparkline';
 import { Money, Pct } from './Pnl';
+import { BadgeRow, RING } from './Badges';
 import type { Row } from '@/lib/agents';
 import { ago, short, usd } from '@/lib/format';
 
@@ -38,10 +39,10 @@ export default function Leaderboard({ rows, compact = false }: { rows: Row[]; co
               <td className="pl-5 pr-2 py-3 num font-extrabold text-ink-2">{r.rank}</td>
               <td className="px-2 py-3">
                 <Link href={`/app/muse/${r.address}`} className="flex items-center gap-3 group">
-                  <Avatar name={r.name} url={r.avatarUrl} size={36} ring={r.rank === 1 ? 'clover' : 'warm'} />
+                  <Avatar name={r.name} url={r.avatarUrl} size={36} ringClass={RING[r.standing.level]} />
                   <span>
-                    <span className="block font-extrabold group-hover:text-clover-deep">{r.name}</span>
-                    <span className="block text-micro text-ink-3 num">{r.human ? `@${r.human} · ` : ''}{short(r.address)}</span>
+                    <span className="flex items-center gap-2 font-extrabold group-hover:text-clover-deep">{r.name}<span className="num text-micro font-bold text-ink-3">L{r.standing.level}</span></span>
+                    <span className="flex items-center gap-2 text-micro text-ink-3 num">{r.human ? `@${r.human} · ` : ''}{short(r.address)} <BadgeRow badges={r.standing.badges} max={3} /></span>
                   </span>
                 </Link>
               </td>
