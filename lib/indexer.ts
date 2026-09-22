@@ -168,9 +168,9 @@ export async function valuation(agent: Agent, activity: Activity): Promise<{ hol
   // Deposits and withdrawals are counted in dollars at today's price for
   // non-dollar tokens; USDG, which is what the sysop seeds, is exact.
   const val = (x: { token: string; amount: number }) => x.amount * (x.token === lower(USDG) ? 1 : quotes[x.token]?.usd ?? 0);
-  const counted = (x: { token: string }) => chosen.has(lower(x.token as `0x${string}`));
-  const deposits = activity.trades.filter((t) => t.kind === 'deposit').reduce((s, t) => s + t.bought.filter(counted).reduce((a, b) => a + val(b), 0), 0);
-  const withdrawals = activity.trades.filter((t) => t.kind === 'withdrawal').reduce((s, t) => s + t.sold.filter(counted).reduce((a, b) => a + val(b), 0), 0);
+  const isChosen = (x: { token: string }) => chosen.has(lower(x.token as `0x${string}`));
+  const deposits = activity.trades.filter((t) => t.kind === 'deposit').reduce((s, t) => s + t.bought.filter(isChosen).reduce((a, b) => a + val(b), 0), 0);
+  const withdrawals = activity.trades.filter((t) => t.kind === 'withdrawal').reduce((s, t) => s + t.sold.filter(isChosen).reduce((a, b) => a + val(b), 0), 0);
   const ignoredSymbols = Array.from(new Set(ignored.map((t) => (activity.trades.flatMap((x) => [...x.bought, ...x.sold]).find((y) => lower(y.token as `0x${string}`) === lower(t as `0x${string}`))?.symbol ?? t.slice(0, 8)))));
   return { holdings, equity: holdings.reduce((s, h) => s + h.usd, 0), deposits, withdrawals, gasEth, ignored: ignoredSymbols };
 }
