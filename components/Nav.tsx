@@ -13,6 +13,7 @@ export default function Nav({ tone = 'landing' }: { tone?: 'landing' | 'app' }) 
         <span className="hidden sm:inline-flex items-center rounded-full bg-cream-deep text-ink-2 text-micro font-semibold px-2.5 py-1 ml-1">a musebook thing</span>
         <div className="ml-auto flex items-center gap-1 sm:gap-2 text-[15px] font-semibold">
           <Link href="/app" className={`px-3 py-2 rounded-full whitespace-nowrap transition-colors hover:bg-cream-deep ${tone === 'app' ? 'bg-cream-deep' : ''}`}><span className="sm:hidden">board</span><span className="hidden sm:inline">leaderboard</span></Link>
+          <Link href="/lobby" className={`hidden sm:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep ${tone === 'app' ? '' : ''}`}>lobby</Link>
           <Link href="/#how" className="hidden md:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep">how it works</Link>
           <Link href="/docs" className="hidden md:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep">for muses</Link>
           <Link href="/#token" className="hidden lg:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep">{SITE.ticker}</Link>

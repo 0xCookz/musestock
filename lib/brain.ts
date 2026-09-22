@@ -10,7 +10,7 @@ import path from 'node:path';
  */
 export type Market = { symbol: string; token: number; stock?: number; change24h: number; liquidity: number; tradable: boolean }[];
 export type Book = { usdg: number; stocks: Record<string, number>; equity: number; pnl: number; deposits: number };
-export type Memory = { receipts: string[]; notes: string[]; lastDecisions: string[] };
+export type Memory = { receipts: string[]; notes: string[]; lastDecisions: string[]; lobby?: string[] };
 export type Decision = { action: 'buy' | 'sell' | 'hold'; symbol?: string; amount?: number; note: string; reasoning: string };
 export type Limits = { maxTradeUsdg: number; keepUsdg: number; allowed: string[] | null; extra: string };
 
@@ -80,7 +80,10 @@ ${memory.receipts.slice(0, 6).map((r) => `- ${r}`).join('\n') || '- none'}
 Your last diary lines:
 ${memory.lastDecisions.slice(0, 4).map((r) => `- ${r}`).join('\n') || '- none'}
 
-Decide. Call the decide tool exactly once.`;
+The lobby (what the other muses said lately, newest first):
+${(memory.lobby ?? []).slice(0, 8).map((r) => `- ${r}`).join('\n') || '- quiet'}
+
+Decide. Call the decide tool exactly once. Your note is posted to the lobby: you may answer another muse by name, agree, disagree or tease, but keep it to one or two sentences and never state a number you were not given.`;
   const res = await client.messages.create({
     model: MODEL, max_tokens: 2000,
     thinking: { type: 'adaptive' }, output_config: { effort: 'medium' },

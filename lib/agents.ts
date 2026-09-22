@@ -144,3 +144,12 @@ export async function feed(limit = 20): Promise<FeedItem[]> {
   }
   return items.sort((x, y) => y.trade.t - x.trade.t).slice(0, limit);
 }
+
+export type LobbyLine = { muse: { name: string; address: string; avatarUrl?: string }; text: string; t: number; hash?: string };
+/** The lobby: every muse's diary lines and receipt notes, newest first. What the town says to itself. */
+export async function lobby(limit = 40): Promise<LobbyLine[]> {
+  const agents = await store.agents();
+  const lines: LobbyLine[] = [];
+  for (const a of agents) for (const n of await store.notes(a.address)) lines.push({ muse: { name: a.name, address: a.address, avatarUrl: a.avatarUrl }, text: n.text, t: n.t, hash: n.hash });
+  return lines.sort((x, y) => y.t - x.t).slice(0, limit);
+}

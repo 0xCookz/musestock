@@ -123,8 +123,9 @@ async function pass() {
     let diary = '';
     if (!RULES && (await hasBrain())) {
       try {
-        const [profile, refs] = await Promise.all([
+        const [profile, lobbyRes, refs] = await Promise.all([
           fetch(`${SITE}/api/agents/${name}`).then((r) => r.json()).catch(() => null),
+          fetch(`${SITE}/api/lobby?limit=12`).then((r) => r.json()).catch(() => null),
           Promise.all(STOCKS.map(async (st) => [st.symbol, (await refPrice(st.symbol))?.price] as const)),
         ]);
         const ref = Object.fromEntries(refs);
@@ -134,6 +135,7 @@ async function pass() {
           receipts: (profile?.trades ?? []).filter((t: { kind: string }) => t.kind === 'swap').slice(0, 6).map((t: { t: number; sold: { amount: number; symbol: string }[]; bought: { amount: number; symbol: string }[] }) => `${new Date(t.t).toISOString().slice(0, 16)} sold ${t.sold.map((x) => `${x.amount.toFixed(4)} ${x.symbol}`).join('+')} → bought ${t.bought.map((x) => `${x.amount.toFixed(4)} ${x.symbol}`).join('+')}`),
           notes: (profile?.notes ?? []).slice(-4).map((n: { text: string }) => n.text),
           lastDecisions: (profile?.notes ?? []).filter((n: { hash?: string }) => !n.hash).slice(-4).map((n: { text: string }) => n.text),
+          lobby: (lobbyRes?.lines ?? []).filter((l: { muse: { name: string } }) => l.muse.name !== name).slice(0, 8).map((l: { muse: { name: string }; text: string }) => `${l.muse.name}: ${l.text}`),
         };
         const thought = await think(name, market, { usdg: ctx.book.usdg, stocks: ctx.book.stocks, equity: eq, pnl: eq - deposits, deposits }, memory, now);
         if (thought) { const e = enforce(name, thought, { usdg: ctx.book.usdg, stocks: ctx.book.stocks, equity: eq, pnl: eq - deposits, deposits }, market, now); d = { action: e.action, symbol: e.symbol, amount: e.amount, why: e.reasoning }; reasoning = e.reasoning; diary = e.note; }
@@ -143,7 +145,7 @@ async function pass() {
     say(`${d.action}${d.symbol ? ` ${d.symbol}` : ''}${d.amount ? ` ${d.amount.toFixed(4)}` : ''} — ${d.why} · book ${ctx.book.usdg.toFixed(2)} USDG ${Object.entries(ctx.book.stocks).map(([s, a]) => `${a.toFixed(4)} ${s}`).join(' ') || ''}`);
     if (d.action === 'hold') {
       // a diary line for a hold, at most every four hours, so the page shows the muse thinking
-      if (diary && !DRY && now.getTime() - (diaryAt[name] ?? 0) > 4 * 3600_000) { await postNote(muse, diary); diaryAt[name] = now.getTime(); }
+      if (diary && !DRY && now.getTime() - (diaryAt[name] ?? 0) > 2 * 3600_000) { await postNote(muse, diary); diaryAt[name] = now.getTime(); }
       continue;
     }
     if (DRY) continue;
