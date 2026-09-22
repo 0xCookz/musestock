@@ -11,7 +11,8 @@ const agents = await store.agents();
 const head = await client.getBlockNumber();
 for (const a of agents) {
   const before = await refreshAgent(a);
-  const fresh = { ...a, registeredBlock: Number(head), baseline: before.equity, baselineAt: Date.now() };
+  const trusted = before.holdings.filter((h) => h.token !== 'eth').map((h) => h.token);
+  const fresh = { ...a, registeredBlock: Number(head), baseline: before.equity, baselineAt: Date.now(), trusted };
   await store.saveAgent(fresh);
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const urls = (await Promise.all(['activity', 'latest', 'snapshots'].map((p) => list({ prefix: `${p}/${a.address.toLowerCase()}` })))).flatMap((r) => r.blobs.map((b) => b.url));

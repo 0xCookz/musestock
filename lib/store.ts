@@ -13,6 +13,8 @@ export type Agent = {
   museId?: string; human?: string; registeredAt: number; registeredBlock: number;
   /** a stats reset: what the wallet was worth when the count restarted, and when */
   baseline?: number; baselineAt?: number;
+  /** tokens held at the reset, so they keep counting without a swap receipt since then */
+  trusted?: string[];
 };
 export type Holding = { token: string; symbol: string; amount: number; usd: number; price: number };
 export type Snapshot = { t: number; block: number; equity: number; deposits: number; withdrawals: number; trades: number };

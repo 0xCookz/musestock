@@ -138,10 +138,10 @@ export async function valuation(agent: Agent, activity: Activity): Promise<{ hol
   // Only tokens the muse chose count: USDG, WETH, and anything it bought in a
   // swap it sent. Airdropped spam has a DexScreener price too, and would
   // otherwise book itself as a deposit worth millions.
-  const chosen = new Set<string>([lower(USDG), lower(WETH)]);
+  const chosen = new Set<string>([lower(USDG), lower(WETH), ...(agent.trusted ?? []).map((t) => lower(t as `0x${string}`))]);
   for (const t of activity.trades) if (t.kind === 'swap') for (const b of t.bought) chosen.add(lower(b.token as `0x${string}`));
   const ignored = activity.tokens.filter((t) => !chosen.has(lower(t as `0x${string}`)));
-  const tokens = Array.from(new Set([lower(USDG), ...activity.tokens.filter((t) => chosen.has(lower(t as `0x${string}`)))]));
+  const tokens = Array.from(new Set([lower(USDG), ...(agent.trusted ?? []).map((t) => lower(t as `0x${string}`)), ...activity.tokens.filter((t) => chosen.has(lower(t as `0x${string}`)))]));
   const meta = await tokenMeta(tokens);
   const [bals, eth, quotes] = await Promise.all([
     client.multicall({ contracts: tokens.map((t) => ({ address: t as Address, abi: erc20Abi, functionName: 'balanceOf', args: [addr] } as const)), allowFailure: true }),
