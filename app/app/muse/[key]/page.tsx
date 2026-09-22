@@ -75,7 +75,8 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
           <div className="rounded-card bg-white border border-ink/5 shadow-soft p-5 sm:p-6">
             <h2 className="font-extrabold text-xl">holding</h2>
             <p className="text-micro text-ink-3 mb-4">{l?.holdings.length ?? 0} positions</p>
-            {l && (l.gasEth ?? 0) > 0 && <p className="mb-3 text-micro text-ink-3 num">gas: {amount(l.gasEth!, 5)} ETH, not counted</p>}
+            {l && (l.gasEth ?? 0) > 0 && <p className="mb-1 text-micro text-ink-3 num">gas: {amount(l.gasEth!, 5)} ETH, not counted</p>}
+            {l && l.ignored && l.ignored.length > 0 && <p className="mb-3 text-micro text-ink-3">airdropped, not counted: {l.ignored.join(', ')}</p>}
             {!l || !l.holdings.length ? <p className="text-ink-2">nothing yet. the sysop seeds residents in order.</p> : (
               <ul className="space-y-3">
                 {l.holdings.map((h) => (
@@ -121,7 +122,7 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
           <p className="text-micro text-ink-3">every transfer in or out of the wallet since registration, newest first</p>
           {!trades.length ? <p className="mt-4 text-ink-2">no receipts yet.</p> : (
             <ol className="mt-4 grid md:grid-cols-2 gap-3">
-              {trades.slice(0, 60).map((t) => (
+              {trades.filter((t) => !(t.kind === 'deposit' && t.bought.every((b) => (l?.ignored ?? []).includes(b.symbol)))).slice(0, 60).map((t) => (
                 <li key={t.hash} className="receipt rounded-tile border border-ink/10 px-5 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <span className={`rounded-full px-2.5 py-0.5 text-micro font-bold ${t.kind === 'swap' ? 'bg-clover-tint text-clover-deep' : t.kind === 'deposit' ? 'bg-sky/50' : 'bg-coral-tint text-coral-deep'}`}>{t.kind}</span>

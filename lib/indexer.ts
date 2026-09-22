@@ -133,9 +133,15 @@ export async function scanActivity(agent: Agent, head: bigint, headTime: number)
 }
 
 /** Live holdings and equity, from balances and prices, right now. */
-export async function valuation(agent: Agent, activity: Activity): Promise<{ holdings: Holding[]; equity: number; deposits: number; withdrawals: number; gasEth: number }> {
+export async function valuation(agent: Agent, activity: Activity): Promise<{ holdings: Holding[]; equity: number; deposits: number; withdrawals: number; gasEth: number; ignored: string[] }> {
   const addr = lower(agent.address);
-  const tokens = Array.from(new Set([lower(USDG), ...activity.tokens]));
+  // Only tokens the muse chose count: USDG, WETH, and anything it bought in a
+  // swap it sent. Airdropped spam has a DexScreener price too, and would
+  // otherwise book itself as a deposit worth millions.
+  const chosen = new Set<string>([lower(USDG), lower(WETH)]);
+  for (const t of activity.trades) if (t.kind === 'swap') for (const b of t.bought) chosen.add(lower(b.token as `0x${string}`));
+  const ignored = activity.tokens.filter((t) => !chosen.has(lower(t as `0x${string}`)));
+  const tokens = Array.from(new Set([lower(USDG), ...activity.tokens.filter((t) => chosen.has(lower(t as `0x${string}`)))]));
   const meta = await tokenMeta(tokens);
   const [bals, eth, quotes] = await Promise.all([
     client.multicall({ contracts: tokens.map((t) => ({ address: t as Address, abi: erc20Abi, functionName: 'balanceOf', args: [addr] } as const)), allowFailure: true }),
@@ -162,9 +168,11 @@ export async function valuation(agent: Agent, activity: Activity): Promise<{ hol
   // Deposits and withdrawals are counted in dollars at today's price for
   // non-dollar tokens; USDG, which is what the sysop seeds, is exact.
   const val = (x: { token: string; amount: number }) => x.amount * (x.token === lower(USDG) ? 1 : quotes[x.token]?.usd ?? 0);
-  const deposits = activity.trades.filter((t) => t.kind === 'deposit').reduce((s, t) => s + t.bought.reduce((a, b) => a + val(b), 0), 0);
-  const withdrawals = activity.trades.filter((t) => t.kind === 'withdrawal').reduce((s, t) => s + t.sold.reduce((a, b) => a + val(b), 0), 0);
-  return { holdings, equity: holdings.reduce((s, h) => s + h.usd, 0), deposits, withdrawals, gasEth };
+  const counted = (x: { token: string }) => chosen.has(lower(x.token as `0x${string}`));
+  const deposits = activity.trades.filter((t) => t.kind === 'deposit').reduce((s, t) => s + t.bought.filter(counted).reduce((a, b) => a + val(b), 0), 0);
+  const withdrawals = activity.trades.filter((t) => t.kind === 'withdrawal').reduce((s, t) => s + t.sold.filter(counted).reduce((a, b) => a + val(b), 0), 0);
+  const ignoredSymbols = Array.from(new Set(ignored.map((t) => (activity.trades.flatMap((x) => [...x.bought, ...x.sold]).find((y) => lower(y.token as `0x${string}`) === lower(t as `0x${string}`))?.symbol ?? t.slice(0, 8)))));
+  return { holdings, equity: holdings.reduce((s, h) => s + h.usd, 0), deposits, withdrawals, gasEth, ignored: ignoredSymbols };
 }
 
 /** Full refresh of one muse: scan, value, remember. */
@@ -175,7 +183,7 @@ export async function refreshAgent(agent: Agent, head?: bigint, headTime?: numbe
   const swaps = activity.trades.filter((t) => t.kind === 'swap');
   const latest: Latest = {
     at: Date.now(), block: Number(head), equity: v.equity, deposits: v.deposits, withdrawals: v.withdrawals,
-    holdings: v.holdings, tradeCount: swaps.length, lastTradeAt: swaps.at(-1)?.t, gasEth: v.gasEth,
+    holdings: v.holdings, tradeCount: swaps.length, lastTradeAt: swaps.at(-1)?.t, gasEth: v.gasEth, ignored: v.ignored,
   };
   await store.saveLatest(agent.address, latest);
   const snaps = await store.snapshots(agent.address);
