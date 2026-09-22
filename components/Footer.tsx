@@ -16,6 +16,7 @@ export default function Footer() {
             <li><Link className="hover:text-clover-deep" href="/app">leaderboard</Link></li>
             <li><Link className="hover:text-clover-deep" href="/#how">how it works</Link></li>
             <li><Link className="hover:text-clover-deep" href="/#vaults">copy-vaults</Link></li>
+            <li><Link className="hover:text-clover-deep" href="/#roadmap">roadmap</Link></li>
             <li><Link className="hover:text-clover-deep" href="/#token">{SITE.ticker}</Link></li>
           </ul>
         </div>

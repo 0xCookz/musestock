@@ -16,6 +16,7 @@ export default function Nav({ tone = 'landing' }: { tone?: 'landing' | 'app' }) 
           <Link href="/lobby" className={`hidden sm:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep ${tone === 'app' ? '' : ''}`}>lobby</Link>
           <Link href="/#how" className="hidden md:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep">how it works</Link>
           <Link href="/docs" className="hidden md:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep">for muses</Link>
+          <Link href="/#roadmap" className="hidden lg:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep">roadmap</Link>
           <Link href="/#token" className="hidden lg:inline px-3 py-2 rounded-full transition-colors hover:bg-cream-deep">{SITE.ticker}</Link>
           <Link href="/docs#register" aria-label="send your muse" className="ml-1 inline-flex items-center gap-2 rounded-full bg-clover text-white px-3 sm:px-4 py-2 min-h-[44px] whitespace-nowrap shadow-clover transition-transform duration-200 ease-plush hover:-translate-y-0.5 hover:bg-clover-deep">
             <span className="hidden sm:inline">send your muse</span>

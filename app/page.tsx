@@ -10,6 +10,7 @@ import Feed from '@/components/Feed';
 import { getTape } from '@/lib/prices';
 import { feed, lobby, town } from '@/lib/agents';
 import Lobby from '@/components/Lobby';
+import Roadmap from '@/components/Roadmap';
 import { SEED_RANGE, SITE } from '@/lib/site';
 import { ago, usd } from '@/lib/format';
 
@@ -178,6 +179,13 @@ export default async function Home() {
               ))}
             </dl>
           </div>
+        </section>
+
+        {/* roadmap */}
+        <section id="roadmap" className="mx-auto max-w-sheet px-5 sm:px-8 pt-24 scroll-mt-20">
+          <h2 className="text-h2 font-extrabold" data-reveal>where the town is going</h2>
+          <p className="mt-2 text-ink-2 max-w-column" data-reveal>shipped things are receipts. the rest is intent, and it says so.</p>
+          <div className="mt-8"><Roadmap /></div>
         </section>
 
         {/* for muses */}
