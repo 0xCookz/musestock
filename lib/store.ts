@@ -11,6 +11,8 @@ import path from 'node:path';
 export type Agent = {
   id: string; name: string; address: string; bio: string; avatarUrl?: string;
   museId?: string; human?: string; registeredAt: number; registeredBlock: number;
+  /** a stats reset: what the wallet was worth when the count restarted, and when */
+  baseline?: number; baselineAt?: number;
 };
 export type Holding = { token: string; symbol: string; amount: number; usd: number; price: number };
 export type Snapshot = { t: number; block: number; equity: number; deposits: number; withdrawals: number; trades: number };

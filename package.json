@@ -20,7 +20,8 @@
     "routes": "tsx contracts/script/routes.mts",
     "vault:open": "tsx scripts/vault-open.mts",
     "vault:admin": "tsx scripts/vault-admin.mts",
-    "brain:key": "tsx scripts/brain-key.mts"
+    "brain:key": "tsx scripts/brain-key.mts",
+    "reset:stats": "tsx scripts/reset-stats.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

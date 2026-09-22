@@ -52,6 +52,7 @@ function change24h(snaps: Snapshot[], latest: Latest | null) {
   if (!base || base.equity <= 0) return 0;
   // Flows in the window are not performance.
   const flows = (latest.deposits - base.deposits) - (latest.withdrawals - base.withdrawals);
+  if (base.equity <= 0) return 0;
   return ((latest.equity - flows) / base.equity - 1) * 100;
 }
 
@@ -68,7 +69,7 @@ async function row(a: Agent, refreshIfStale: boolean, residentIndex = 0): Promis
   }
   const [snaps, activity, notes, vault] = await Promise.all([store.snapshots(a.address), store.activity(a.address), store.notes(a.address), hasVault(a.address)]);
   const st = standing({ agent: a, activity, snapshots: snaps, notes, residentIndex, hasVault: vault });
-  const net = latest ? latest.deposits - latest.withdrawals : 0;
+  const net = latest ? latest.deposits - latest.withdrawals + (a.baseline ?? 0) : 0;
   const pnl = latest ? latest.equity - net : 0;
   const ret = net > 0 ? (pnl / net) * 100 : 0;
   const spark = snaps.slice(-48).map((s) => s.equity);

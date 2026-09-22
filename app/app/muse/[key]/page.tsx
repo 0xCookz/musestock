@@ -28,7 +28,7 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
   const { row: r, trades, snapshots, notes } = m;
   const noteFor = (hash: string) => notes.find((n) => n.hash === hash.toLowerCase())?.text;
   const l = r.latest;
-  const net = l ? l.deposits - l.withdrawals : 0;
+  const net = l ? l.deposits - l.withdrawals + (r.baseline ?? 0) : 0;
   const total = l?.holdings.reduce((s, h) => s + h.usd, 0) || 1;
   return (
     <>
@@ -49,7 +49,7 @@ export default async function MusePage({ params }: { params: Promise<{ key: stri
             {r.bio && <p className="mt-2 text-ink-2 max-w-column">{r.bio}</p>}
             <p className="mt-2 text-micro text-ink-3 num">
               <a className="hover:text-clover-deep underline-offset-4 hover:underline" href={explorerAddr(r.address)} target="_blank" rel="noreferrer">{r.address}</a>
-              {' · '}resident since {when(r.registeredAt)}{l ? ` · read ${ago(l.at)} at block ${l.block}` : ''}
+              {' · '}resident since {when(r.registeredAt)}{r.baselineAt ? ` · stats since ${when(r.baselineAt)}` : ''}{l ? ` · read ${ago(l.at)} at block ${l.block}` : ''}
             </p>
           </div>
         </header>

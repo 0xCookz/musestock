@@ -15,7 +15,7 @@ export default async function Image({ params }: { params: Promise<{ key: string 
   const m = await muse(key, { refresh: false });
   const r = m?.row;
   const l = r?.latest;
-  const net = l ? l.deposits - l.withdrawals : 0;
+  const net = l ? l.deposits - l.withdrawals + (r?.baseline ?? 0) : 0;
   const rows: [string, string, string][] = [
     ['equity', l ? usd(l.equity) : '—', '#4a3b32'],
     ['p&l', r ? usd(r.pnl, { sign: true }) : '—', r && r.pnl < 0 ? '#c0432f' : '#236b3f'],
